@@ -295,7 +295,9 @@ def distributeTask(aTask):
     'saveTest':saveTest,
     'getBWinfo':getBWinfo,
     'plotBW':plotBW,
-    'CCI':cellCellInteraction
+    'CCI':cellCellInteraction,
+    'CCItable':cellIntTable,
+    'CCIplot':cellIntDotPlot
   }.get(aTask,errorTask)
 
 def HELLO(data):
@@ -1514,16 +1516,16 @@ def plotBW(data):
 def cellCellInteraction(data):
   adata = createData(data)
   Cluster_Key = data['ClusterKey']
-  Cluster = data['Cluster']
 
   Condition_Key = data['ConditionKey']
   Condition = data['Cond']
 
-  adata_1 = adata[adata.obs[Condition_Key].isin([Condition])]
 
+  adata_1 = adata[adata.obs[Condition_Key].isin([Condition])]
+  global cci
   cci = sq.gr.ligrec(
     adata_1,
-    n_perms=1000,
+    n_perms=100,
     cluster_key=Cluster_Key,
     copy=True,
     use_raw=False,
@@ -1531,10 +1533,36 @@ def cellCellInteraction(data):
     receiver_params={"categories": "receptor"},
     interactions_params={'resources': 'CellPhoneDB'}
 )
+  return cellCellInteraction.table
 
-  CellIntDotPlot = sq.pl.ligrec(cci, source_groups=Cluster, alpha=0.005)
+def cellIntTable(cci):
+
+ cci = cellCellInteraction.table
+ cci_columns = list(cci["pvalues"].columns)
+ cci_plong = pd.melt(cci["pvalues"], value_vars = cci_columns, value_name = 'pval', ignore_index = False)
+ cci_plong = cci_plong.reset_index(level=['source', 'target'])
+ cci_columns = list(cci["means"].columns)
+ cci_means_long = pd.melt(cci["means"], value_vars = cci_columns, value_name = 'mean', ignore_index = False)
+ cci_means_long = cci_means_long.reset_index(level=['source', 'target'])
+
+ merged_cci = pd.merge(cci_plong, cci_means_long, how = "outer")
+ merged_cci = merged_cci.dropna()
+
+ merged_cci_table = merged_cci.to_html(table_id= "CCIdtable")
+ 
+
+ return json.dumps(merged_cci_table)
+
+
+def cellIntDotPlot(data):
+
+  cellPval = float(data['cellPval'])
+  Cluster_R = data['Cluster_Receiver']
+  Cluster_S = data['Cluster_Source']
+
+  plot = sq.pl.ligrec(cellCellInteraction.table, source_groups=Cluster_R, target_groups=Cluster_S, pvalue_threshold=cellPval, alpha=0.001, dot_max=0.8)
     
-  return iostreamFig(CellIntDotPlot)
+  return iostreamFig(plot)
 
 #make sure the h5ad file full name is listed in vip.env as a variable 'testVIP';
 def testVIPready(data):

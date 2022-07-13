@@ -550,7 +550,7 @@
       <button class="tablinks" onclick="selFun(event, 'DEG');defaultTopSel('DEGtop','DEGtopBT1')">DEG</button>
       <button id="preDEGpanelBT" class="tablinks" onclick="selFun(event, 'preDEGpanel');defaultTopSel('DEG','DEGlinksPlot')" style="display: none;">Pre-Computed DEG</button>
       <button class="tablinks" onclick="selFun(event, 'MARK')">Marker Genes</button>
-      <button class="tablinks" onclick="selFun(event, 'cellCellInteraction')">Cell Cell Interactions</button>
+      <button class="tablinks" onclick="selFun(event, 'cellCellInteraction');getAllCells('CCI')">Cell Cell Interactions</button>
       <button id="browserBT" class="tablinks" onclick="selFun(event, 'BROW')" style="display: none;">Multiome</button>
       <button class="tablinks" onclick="selFun(event, 'SPATIAL');defaultTopSel('SPATIAL','SPATIALimage')">Spatial Transcriptomics</button>
       <button class="tablinks" onclick="selFun(event, 'CLI')">Command Line Interface</button>
@@ -561,7 +561,7 @@
       <button class="tablinks" onclick="selFun(event, 'ABBR')">Comb. & Abbr.</button>
       <button class="tablinks" onclick="saveLocal()">Save Session</button>
       <button class="tablinks" onclick="selFun(event, 'LOAD')">Load Session</button>
-      <button class="tablinks" onclick="ABBRall()">Check All Annotations</button>
+      <button class="tablinks" onclick="ABBRall()">Check Annotations</button>
       <button class="tablinks" onclick="selFun(event, 'BRUSH');">Brush</button>
       <button class="tablinks" onclick="sync();">Sync</button>
       <button id="VIPtestBT" class="tablinks" onclick="selFun(event, 'tVIP')" style="display: none;">Test</button>
@@ -814,23 +814,39 @@
 
     <div id="cellCellInteraction" class="tabcontent">
       <div id="CellCellInteractionInput">
-        <h3>For a given cell population in a condition plot L-R inte  ractions:</h3>
-        <p>Select Cell Population Annotation:
-          <select id="CCI_ClusterKey" onclick="CellIntList('cluster')"></select></p>
-        <p>Select a Cell Population:
-          <select id="CCI_Cluster"></select></p>
-    <p>Select Condition Annotation:
-      <select id="CCI_ConditionKey"onclick="CellIntList('condition')"></select></p>
-	  <p>Select Condition:
-      <select id="CCI_C1"></select></p>
-      </div>
-      <button class="CCIbt" onclick="CellIntDotPlot()"><b>Plot</b></button>
-      <p id="CCInote" style="color:red;"></p>
+        <h3>Run analysis of L-R interactions in a given condition:</h3>
+          <p>Select Cell Population Annotation:
+            <select id="CCI_ClusterKey" onclick="CellIntList('cluster')"></select></p>
+          <p>Select Condition Annotation:
+            <select id="CCI_ConditionKey"onclick="CellIntList('condition')"></select></p>
+	        <p>Select Condition:
+            <select id="CCI_C1"></select></p>
+      <button class="CCIRUNbt" onclick="cellCellInteraction()"><b>Run</b></button>
+        <p id="CCInote1" style="color:red;"></p>
+        <p id="CCInotesuccess" style="color:black;"></p>
+      <div id="CCIspin" class="loading style-2" style="visibility: hidden;"><div class="loading-wheel"></div></div>
+
+      <div id="cellIntTable"></p>
+      <h3>Show L-R interaction results:</h3>
+      <button class="CCITablebt" onclick="cellIntTable()"><b>Table</b></button>
+      <p id="CCInote3" style="color:red;"></p>
+      <table id="CCIdtable" class="display"></table>
+
+      <div id="CCIplot"></p>
+      <h3>For a given cell population in a condition plot L-R interactions:</h3>
+           <p>Select a Source Cell Population to plot:
+             <select id="CCI_Cluster1"></select></p>
+           <p>Select a Target Cell Population to pplot:
+             <select id="CCI_Cluster2"></select></p>
+           <p>Select p-value threshold:<input id="cellPval" type="float" step="0.1" value="1.0"/></p>
+      <button class="CCIbt" onclick="cellIntDotPlot()"><b>Plot</b></button>
+        <p id="CCInote2" style="color:red;"></p>
+        <p id="CCInotesuccess" style="color:black;"></p>
       <div id="CCIspin" class="loading style-2" style="visibility: hidden;"><div class="loading-wheel"></div></div>
       <button onclick="ZoomIn('CCIresize')">Zoom In</button>
       <button onclick="ZoomOut('CCIresize')">Zoom Out</button>
       <div id="CCIresize" style="height: 'auto'; width: 'auto'; padding: 0.5em;">
-        <p id="CCIfig"></p>
+        <p id="CCIfig"></p></div>
     </div><!--cellCellInteraction-->
 
     <div id="HEAT" class="tabcontent">
@@ -1631,13 +1647,7 @@
         <legend>Create a test case</legend>
         <p>by: <select id="tVIPgrp"></select></p>
         <p><button class="tVIPbt tVIPbtA" onclick="tVIPcreate('random','tVIPnote')">Create</button><br>
-          The process will<br>
-          1. Split cells with selected annotation into two groups randomly;<br>
-          2. Select 500 cells from each group;<br>
-          3. Perform DEG (Differentially Expressed Genes) method to those two groups of cells;<br>
-          4. Select top DEGs randomly into groups;<br>
-          5. Choose plotting options in VIP randomly;<br>
-          6. Perform plotting functions one by one;<br>
+          The process will<br><div id="CLIspin" class="loading style-2" style="visibility: hidden;"><div class="loading-wheel"></div></div>functions one by one;<br>
           7. Save the test case on the server for future use (overwrite previous).
         </p>
         <p><button class="tVIPbt tVIPbtA" onclick="tVIPcreate('cells','tVIPnote')">Create on selected cells</button><br>
@@ -2127,7 +2137,8 @@ function init(){
     var tVIP = document.getElementById("tVIPgrp");
     var CCI = document.getElementById("CCI_ClusterKey");
     var CCIck = document.getElementById("CCI_ConditionKey");
-    var CCIgrp = document.getElementById("CCI_Cluster");
+    var CCIgrp1 = document.getElementById("CCI_Cluster1");
+    var CCIgrp2 = document.getElementById("CCI_Cluster2");
     var CCIcon = document.getElementById("CCI_C1");
 
     for(const one of grps){
@@ -2146,7 +2157,8 @@ function init(){
       tVIP.add(createOpt(one));
       CCI.add(createOpt(one));
       CCIck.add(createOpt(one));
-      CCIgrp.add(createOpt(one));
+      CCIgrp1.add(createOpt(one));
+      CCIgrp2.add(createOpt(one));
       CCIcon.add(createOpt(one));
     }
     densS.add(createOpt('None'));
@@ -2416,12 +2428,15 @@ function CellIntList(opt){
     var annCat = document.getElementById("CCI_ClusterKey").value;
     grps[annCat]=window.store.getState().annoMatrix.schema.annotations.obsByName[annCat].categories.map(String);
 
-    $("#CCI_Cluster").empty();
+    $("#CCI_Cluster1").empty();
+    $("#CCI_Cluster2").empty();
 
-    var levels = document.getElementById("CCI_Cluster");
+    var levels1 = document.getElementById("CCI_Cluster1");
+    var levels2 = document.getElementById("CCI_Cluster2");
 
     for(const one of grps[annCat]) {
-      levels.add(createOpt(one));
+      levels1.add(createOpt(one));
+      levels2.add(createOpt(one));
     }
    
   }else{
@@ -2429,10 +2444,10 @@ function CellIntList(opt){
     grps[annCat]=window.store.getState().annoMatrix.schema.annotations.obsByName[annCat].categories.map(String);
     $("#CCI_C1").empty();
 
-    var levels1 = document.getElementById("CCI_C1");
+    var levels3 = document.getElementById("CCI_C1");
 
     for(const one of grps[annCat]) {
-      levels1.add(createOpt(one));
+      levels3.add(createOpt(one));
     }
    } 
   
@@ -5165,32 +5180,34 @@ function CLIplot(){
   });
 }
 
-function CellIntDotPlot(){
+function getAllCells(){
+AllCells = Int32Array.from({length:window.store.getState().annoMatrix.nObs},(v,k)=>k);
+}
+
+var AllCells;
+
+function cellCellInteraction(){
   var CCI_CK = document.getElementById("CCI_ClusterKey").value; 
-  
-  var CCI_C = document.getElementById("CCI_Cluster").value; 
   
   var CCI_CK2 = document.getElementById("CCI_ConditionKey").value; 
   
   var CCI_Con = document.getElementById("CCI_C1").value; 
   
-  var cells = getCells('CCIcell');
+  var cells = AllCells;
 
   let grp = [...new Set([$("#CCI_ClusterKey").val(),$("#CCI_ConditionKey").val()])];
 
-  if(CCI_CK && CCI_C && CCI_CK2 && CCI_Con && cells) {
+  if(CCI_CK &&  CCI_CK2 && CCI_Con && cells) {
     
     var D = {'method':'CCI',
 		'dataset': window.store.getState().config.displayNames.dataset+'.h5ad',
-		'Cluster':CCI_C,
 		'ClusterKey':CCI_CK,
 		'ConditionKey':CCI_CK2,
     'cells':cells,
     'genes':[],
     'grp':grp,
 		'Cond':CCI_Con};
-    $(".CCIbt").prop("disabled",true);
-    $(".CCITablebt").prop("disabled",true);
+    $(".CCIbt").prop("disabled", true);
     document.getElementById("CCIspin").style.visibility="visible";
     
     $.ajax({
@@ -5199,16 +5216,17 @@ function CellIntDotPlot(){
     data:JSON.stringify(D),
     contentType: 'application/json;charset=UTF-8',//
     success: function(res){
+      CCI_result = res;
       $(".CCIbt").prop("disabled",false);
-      $(".CCITablebt").prop("disabled",false);
       document.getElementById("CCIspin").style.visibility="hidden";
       
       
-      showImg('CCIfig',res);
+      $("#CCInotesuccess").text('Done!');
 
     },
     error: function() {
-      $("#CCInote").text('Plotting Error!');
+      $("#CCInote1").text('Running Error!');
+      document.getElementById("CCIspin").style.visibility="hidden";
     }
 })
 return
@@ -5216,6 +5234,99 @@ return
     $("#CCInote").text('Input data required');
     document.getElementById("CCIfig").innerHTML = ""; 
 }
+
+var CCI_result;
+
+function cellIntTable() {
+
+var table = CCI_result;
+
+if(table) {
+  
+  var D = {'method':'CCItable',
+  'table': table};
+
+  $(".CCITablebt").prop("disabled", true);
+  document.getElementById("CCIspin").style.visibility="visible";
+  
+  $.ajax({
+  type:"POST",
+  url: VIPurl,
+  data:JSON.stringify(D),
+  contentType: 'application/json;charset=UTF-8',//
+  success: function(res){
+    $(".CCITablebt").prop("disabled",false);
+    document.getElementById("CCIspin").style.visibility="hidden";
+
+    html_json = res; 
+
+    document.getElementById("CCIdtable").innerHTML = html_json; 
+  },
+  error: function() {
+    $("#CCInote3").text('Table Error!');
+  }
+})
+return
+ } 
+   $("#CCInote").text('Input data required');
+   document.getElementById("CCIfig").innerHTML = ""; 
+   $('#CCIdtable').empty();
+}
+
+function cellIntDotPlot(){
+  var CCI_CK = document.getElementById("CCI_ClusterKey").value; 
+  
+  var CCI_CS = document.getElementById("CCI_Cluster1").value; 
+
+  var CCI_CR = document.getElementById("CCI_Cluster2").value;
+  
+  var CCI_CK2 = document.getElementById("CCI_ConditionKey").value; 
+  
+  var CCI_Con = document.getElementById("CCI_C1").value; 
+  
+  var cells = AllCells;
+
+  let grp = [...new Set([$("#CCI_ClusterKey").val(),$("#CCI_ConditionKey").val()])];
+
+  if(CCI_CK && CCI_CR && CCI_CS && CCI_CK2 && CCI_Con && cells) {
+    
+    var D = {'method':'CCIplot',
+		'dataset': window.store.getState().config.displayNames.dataset+'.h5ad',
+		'Cluster_Receiver':CCI_CR,
+    'Cluster_Source':CCI_CS,
+		'ClusterKey':CCI_CK,
+		'ConditionKey':CCI_CK2,
+    'cellPval':$("#cellPval").val(),
+    'cells':cells,
+    'genes':[],
+    'grp':grp,
+		'Cond':CCI_Con};
+    $(".CCIplotbt").prop("disabled", true);
+    document.getElementById("CCIspin").style.visibility="visible";
+    
+    $.ajax({
+    type:"POST",
+    url: VIPurl,
+    data:JSON.stringify(D),
+    contentType: 'application/json;charset=UTF-8',//
+    success: function(res){
+      $(".CCIplotbt").prop("disabled",false);
+      document.getElementById("CCIspin").style.visibility="hidden";
+      
+      
+      showImg('CCIfig',res);
+
+    },
+    error: function() {
+      $("#CCInote2").text('Plotting Error!');
+    }
+})
+return
+  } 
+    $("#CCInote").text('Input data required');
+    document.getElementById("CCIfig").innerHTML = ""; 
+}
+
 
 function metaSel(){
   document.getElementById("metaCellBTspin").style.visibility="visible";
