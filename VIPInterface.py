@@ -1,3 +1,5 @@
+from ast import Index
+from tkinter.tix import TList
 import requests
 import json
 import traceback
@@ -296,7 +298,6 @@ def distributeTask(aTask):
     'getBWinfo':getBWinfo,
     'plotBW':plotBW,
     'CCI':cellCellInteraction,
-    'CCItable':cellIntTable,
     'CCIplot':cellIntDotPlot
   }.get(aTask,errorTask)
 
@@ -307,7 +308,7 @@ def iostreamFig(fig):
   #getLock(iosLock)
   figD = BytesIO()
   #ppr.pprint('io located at %d'%int(str(figD).split(" ")[3].replace(">",""),0))
-  fig.savefig(figD,bbox_inches="tight")
+  fig.savefig(figD,bbox_inches='tight')
   #ppr.pprint(sys.getsizeof(figD))
   #ppr.pprint('io located at %d'%int(str(figD).split(" ")[3].replace(">",""),0))
   imgD = base64.encodebytes(figD.getvalue()).decode("utf-8")
@@ -1513,6 +1514,8 @@ def plotBW(data):
 
     return img
 
+merged_cci_global = pd.DataFrame()
+
 def cellCellInteraction(data):
   adata = createData(data)
   Cluster_Key = data['ClusterKey']
@@ -1522,7 +1525,6 @@ def cellCellInteraction(data):
 
 
   adata_1 = adata[adata.obs[Condition_Key].isin([Condition])]
-  global cci
   cci = sq.gr.ligrec(
     adata_1,
     n_perms=100,
@@ -1533,36 +1535,94 @@ def cellCellInteraction(data):
     receiver_params={"categories": "receptor"},
     interactions_params={'resources': 'CellPhoneDB'}
 )
-  return cellCellInteraction.table
+  cci_columns = list(cci["pvalues"].columns)
+  cci_plong = pd.melt(cci["pvalues"], value_vars = cci_columns, value_name = 'pval', ignore_index = False)
+  cci_plong = cci_plong.reset_index(level=['source', 'target'])
+  cci_columns = list(cci["means"].columns)
+  cci_means_long = pd.melt(cci["means"], value_vars = cci_columns, value_name = 'mean', ignore_index = False)
+  cci_means_long = cci_means_long.reset_index(level=['source', 'target'])
 
-def cellIntTable(cci):
+  merged_cci = pd.merge(cci_plong, cci_means_long, how = "outer")
+  merged_cci = merged_cci.dropna()
 
- cci = cellCellInteraction.table
- cci_columns = list(cci["pvalues"].columns)
- cci_plong = pd.melt(cci["pvalues"], value_vars = cci_columns, value_name = 'pval', ignore_index = False)
- cci_plong = cci_plong.reset_index(level=['source', 'target'])
- cci_columns = list(cci["means"].columns)
- cci_means_long = pd.melt(cci["means"], value_vars = cci_columns, value_name = 'mean', ignore_index = False)
- cci_means_long = cci_means_long.reset_index(level=['source', 'target'])
+  merged_cci['Interacting_LR'] = merged_cci['source'] + '-' + merged_cci['target']
+  merged_cci['Interacting_Pair'] = merged_cci['cluster_1'] + '-' + merged_cci['cluster_2']
 
- merged_cci = pd.merge(cci_plong, cci_means_long, how = "outer")
- merged_cci = merged_cci.dropna()
+#  merged_cci.rename(columns={'source': 'Source', 'target': 'Target', 'cluster_1': 'Cluster 1', 'cluster_2': 'Cluster_2', 'pval': 'Pvalues', 'mean': 'Mean'}, inplace=True)
+  global merged_cci_global
+  merged_cci_global = merged_cci_global.append(merged_cci)
 
- merged_cci_table = merged_cci.to_html(table_id= "CCIdtable")
- 
+  merged_cci_table = merged_cci.to_csv(index=False)
+  merged_cci_table_json = json.dumps(merged_cci_table)
 
- return json.dumps(merged_cci_table)
+  return merged_cci_table_json
 
+def cellTabP():
+  return merged_cci_global
 
 def cellIntDotPlot(data):
-
+  dataT = cellTabP()
   cellPval = float(data['cellPval'])
   Cluster_R = data['Cluster_Receiver']
   Cluster_S = data['Cluster_Source']
+  cellpair = Cluster_S + '-' + Cluster_R
+  small = dataT[dataT['Interacting_Pair'] == cellpair]
+  small = small[small['pval'] < cellPval]
 
-  plot = sq.pl.ligrec(cellCellInteraction.table, source_groups=Cluster_R, target_groups=Cluster_S, pvalue_threshold=cellPval, alpha=0.001, dot_max=0.8)
+  conditions = [
+    (small['pval'] > 0.05),
+    (small['pval'] > 0.01) & (small['pval'] <= 0.05),
+    (small['pval'] <= 0.01)]
+
+  choices = [1,2,3]
+
+  small['Pseudop'] = np.select(conditions, choices, default = 'NA')
+  small['Pseudop'] = small['Pseudop'].astype(float)
+
+
+  hover_text = []
+  bubble_size = []
+
+  for index, row in small.iterrows():
+      hover_text.append(('Interacting Pair: {Interacting_Pair}<br>' +
+                      'Interacting LR: {Interacting_LR}<br>' +
+                      'P-value: {pvalues}<br>' +
+                      'Mean Expression: {mean}').format(Interacting_Pair = row['Interacting_Pair'],
+                                                       Interacting_LR = row['Interacting_LR'],
+                                                       pvalues = row['pval'],
+                                                       mean = row['mean']))
+      bubble_size.append(row['Pseudop'])
     
-  return iostreamFig(plot)
+  small['text'] = hover_text
+  small['size'] = bubble_size
+  bubble_size = np.array(bubble_size)
+
+  sizeref = bubble_size.max()/10 ** 2
+
+  fig = go.Figure()
+
+  fig.add_trace(go.Scatter(
+    x=small['Interacting_Pair'], y=small['Interacting_LR'],
+    text = small['text'],
+    marker_size = bubble_size,))
+
+  fig.update_traces(mode = 'markers', marker=dict(sizemode='area',
+                                               sizeref = sizeref, 
+                                               color=small['mean'],
+                                                sizemin = 1, showscale=True,
+                                               
+  colorbar_title = 'Mean Expression'))
+  fig.update_xaxes(tickangle=45)
+
+  fig.update_layout(
+    title = 'Cell-Cell Interactions', title_x = 0.5,
+    xaxis = dict(
+    title = 'Interacting Cell Types',),
+    yaxis = dict(
+    title = 'Ligand-Receptor Pairs'),)
+
+  div = plotIO.to_html(fig)
+  return div
 
 #make sure the h5ad file full name is listed in vip.env as a variable 'testVIP';
 def testVIPready(data):

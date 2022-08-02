@@ -827,8 +827,7 @@
       <div id="CCIspin" class="loading style-2" style="visibility: hidden;"><div class="loading-wheel"></div></div>
 
       <div id="cellIntTable"></p>
-      <h3>Show L-R interaction results:</h3>
-      <button class="CCITablebt" onclick="cellIntTable()"><b>Table</b></button>
+      <h3>L-R interaction results:</h3>
       <p id="CCInote3" style="color:red;"></p>
       <table id="CCIdtable" class="display"></table>
 
@@ -5197,17 +5196,18 @@ function cellCellInteraction(){
 
   let grp = [...new Set([$("#CCI_ClusterKey").val(),$("#CCI_ConditionKey").val()])];
 
-  if(CCI_CK &&  CCI_CK2 && CCI_Con && cells) {
+  if(CCI_CK && CCI_CK2 && CCI_Con && cells) {
     
     var D = {'method':'CCI',
-		'dataset': window.store.getState().config.displayNames.dataset+'.h5ad',
-		'ClusterKey':CCI_CK,
-		'ConditionKey':CCI_CK2,
-    'cells':cells,
-    'genes':[],
-    'grp':grp,
-		'Cond':CCI_Con};
+	      'dataset': window.store.getState().config.displayNames.dataset+'.h5ad',
+	      'ClusterKey':CCI_CK,
+	      'ConditionKey':CCI_CK2,
+        'cells':cells,
+        'genes':[],
+        'grp':grp,
+	      'Cond':CCI_Con};
     $(".CCIbt").prop("disabled", true);
+    $('#CCIdtable').empty();
     document.getElementById("CCIspin").style.visibility="visible";
     
     $.ajax({
@@ -5216,12 +5216,43 @@ function cellCellInteraction(){
     data:JSON.stringify(D),
     contentType: 'application/json;charset=UTF-8',//
     success: function(res){
-      CCI_result = res;
       $(".CCIbt").prop("disabled",false);
       document.getElementById("CCIspin").style.visibility="hidden";
       
       
-      $("#CCInotesuccess").text('Done!');
+      resTable = res;
+      resTable = JSON.stringify(resTable);
+      resTable = resTable.split("\\n");
+      resTable = resTable.join('\n');
+      resTable = resTable.replace(/\\/g, '');
+      resTable = resTable.replace(/"/g,"");
+
+      var gInfo = resTable.split("\n")[0].split(',').slice(8);
+
+      var tableP = d3.csvParse(resTable, function(data){
+        return [].concat([data.source,
+                  (data.target),
+                  (data.cluster_1),
+                  (data.cluster_2),
+                  (+data.pval).toExponential(2),
+                  (+data.mean).toFixed(2),
+                  (data.Interacting_Pair),
+                  (data.Interacting_LR)],
+                  Object.values(data).slice(8));
+        });
+
+
+      var tableTitle = [];
+      [].concat(['Source', "Target", "Sender Cluster", "Target Cluster", "P-value","Mean Expression", "Interacting Pair", "Interacting L-R"],gInfo).forEach(function(d){tableTitle = tableTitle.concat({title:d})});
+      var table = $('#CCIdtable').DataTable({
+        destroy: true,
+        dom: 'Blfrtrip',
+        lengthMenu:[[10,50,100,200], [10,50,100,200,"All"]],
+        order:[5,"dsc"],
+        buttons:['csv'],
+        data: tableP,
+        columns:tableTitle
+      });
 
     },
     error: function() {
@@ -5232,45 +5263,8 @@ function cellCellInteraction(){
 return
   } 
     $("#CCInote").text('Input data required');
-    document.getElementById("CCIfig").innerHTML = ""; 
-}
-
-var CCI_result;
-
-function cellIntTable() {
-
-var table = CCI_result;
-
-if(table) {
-  
-  var D = {'method':'CCItable',
-  'table': table};
-
-  $(".CCITablebt").prop("disabled", true);
-  document.getElementById("CCIspin").style.visibility="visible";
-  
-  $.ajax({
-  type:"POST",
-  url: VIPurl,
-  data:JSON.stringify(D),
-  contentType: 'application/json;charset=UTF-8',//
-  success: function(res){
-    $(".CCITablebt").prop("disabled",false);
-    document.getElementById("CCIspin").style.visibility="hidden";
-
-    html_json = res; 
-
-    document.getElementById("CCIdtable").innerHTML = html_json; 
-  },
-  error: function() {
-    $("#CCInote3").text('Table Error!');
-  }
-})
-return
- } 
-   $("#CCInote").text('Input data required');
-   document.getElementById("CCIfig").innerHTML = ""; 
-   $('#CCIdtable').empty();
+    document.getElementById("CCIfig").innerHTML = "";
+    $('#CCIdtable').empty();
 }
 
 function cellIntDotPlot(){
@@ -5314,7 +5308,7 @@ function cellIntDotPlot(){
       document.getElementById("CCIspin").style.visibility="hidden";
       
       
-      showImg('CCIfig',res);
+      $('#CCIplot').html(res);
 
     },
     error: function() {
