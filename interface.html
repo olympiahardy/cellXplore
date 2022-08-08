@@ -815,6 +815,10 @@
     <div id="cellCellInteraction" class="tabcontent">
       <div id="CellCellInteractionInput">
         <h3>Run analysis of L-R interactions in a given condition:</h3>
+        <p>Choose cell selection(s):
+          <label><input class="CCIcell" type="checkbox" value="celllist1" checked/>Selection 1 (<span class="cellN1" style="color:red">0</span>)</label>
+          <label><input class="CCIcell" type="checkbox" value="celllist2" checked/>Selection 2 (<span class="cellN2" style="color:red">0</span>)</label>
+        </p>
           <p>Select Cell Population Annotation:
             <select id="CCI_ClusterKey" onclick="CellIntList('cluster')"></select></p>
           <p>Select Condition Annotation:
@@ -831,21 +835,18 @@
       <p id="CCInote3" style="color:red;"></p>
       <table id="CCIdtable" class="display"></table>
 
-      <div id="CCIplot"></p>
       <h3>For a given cell population in a condition plot L-R interactions:</h3>
            <p>Select a Source Cell Population to plot:
              <select id="CCI_Cluster1"></select></p>
            <p>Select a Target Cell Population to pplot:
              <select id="CCI_Cluster2"></select></p>
            <p>Select p-value threshold:<input id="cellPval" type="float" step="0.1" value="1.0"/></p>
-      <button class="CCIbt" onclick="cellIntDotPlot()"><b>Plot</b></button>
+           <button class="CCIPLOTbt" onclick="cellIntDotPlot()"><b>Plot</b></button>
+      <div id="CCIplot"></p>
         <p id="CCInote2" style="color:red;"></p>
         <p id="CCInotesuccess" style="color:black;"></p>
       <div id="CCIspin" class="loading style-2" style="visibility: hidden;"><div class="loading-wheel"></div></div>
-      <button onclick="ZoomIn('CCIresize')">Zoom In</button>
-      <button onclick="ZoomOut('CCIresize')">Zoom Out</button>
       <div id="CCIresize" style="height: 'auto'; width: 'auto'; padding: 0.5em;">
-        <p id="CCIfig"></p></div>
     </div><!--cellCellInteraction-->
 
     <div id="HEAT" class="tabcontent">
@@ -5192,7 +5193,7 @@ function cellCellInteraction(){
   
   var CCI_Con = document.getElementById("CCI_C1").value; 
   
-  var cells = AllCells;
+  var cells = getCells('CCIcell');
 
   let grp = [...new Set([$("#CCI_ClusterKey").val(),$("#CCI_ConditionKey").val()])];
 
@@ -5282,6 +5283,9 @@ function cellIntDotPlot(){
 
   let grp = [...new Set([$("#CCI_ClusterKey").val(),$("#CCI_ConditionKey").val()])];
 
+  $(".CCIplotbt").prop("disabled", true);
+  document.getElementById("CCIspin").style.visibility="visible";
+
   if(CCI_CK && CCI_CR && CCI_CS && CCI_CK2 && CCI_Con && cells) {
     
     var D = {'method':'CCIplot',
@@ -5294,9 +5298,8 @@ function cellIntDotPlot(){
     'cells':cells,
     'genes':[],
     'grp':grp,
-		'Cond':CCI_Con};
-    $(".CCIplotbt").prop("disabled", true);
-    document.getElementById("CCIspin").style.visibility="visible";
+		'Cond':CCI_Con,
+    'figOpt':window.figOpt};
     
     $.ajax({
     type:"POST",
