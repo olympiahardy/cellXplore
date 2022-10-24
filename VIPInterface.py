@@ -299,7 +299,8 @@ def distributeTask(aTask):
     'CPV':cellpopview,
     'CPVTable':cpvtable,
     'ymlPARSE':parseYAML,
-    'pseudo':pseudoPlot
+    'pseudo':pseudoPlot,
+    'hp_cc':hp_ClusterCompare
   }.get(aTask,errorTask)
 
 def HELLO(data):
@@ -1685,3 +1686,115 @@ def pseudoPlot(data):
   pseudoPlot = plt.gcf()
 
   return iostreamFig(pseudoPlot)
+
+def hp_ClusterCompare(data):
+  
+  ppr.pprint("Start of function")
+
+  # get copy of currently loaded data
+  #with app.get_data_adaptor() as data_adaptor:
+    #adata = data_adaptor.data.copy()
+
+  adata = sc.read_h5ad("/home/ed/data_cxg/hepatoVivax.h5ad")
+
+  gene_list = adata.var_names
+  ppr.pprint(gene_list)
+
+  parasiteGenes = []
+  hostGenes = []
+
+  for x in gene_list:
+    if x.startswith("PV"):
+        parasiteGenes.append(x)
+    else:
+        hostGenes.append(x)
+
+  # Split Data ----------
+
+  parasite = adata[:,parasiteGenes]
+  host = adata[:,hostGenes]
+
+  ppr.pprint("Split Datasets")
+
+  # Recalculate highly variable genes
+
+  sc.pp.highly_variable_genes(parasite)
+  sc.pp.highly_variable_genes(host)
+
+# hvg filter
+
+  parasite = parasite[:, parasite.var.highly_variable]
+  host = host[:, host.var.highly_variable]
+
+  ppr.pprint("hvg filter")
+
+# PCA
+
+  sc.tl.pca(parasite, svd_solver='arpack')
+  sc.tl.pca(host, svd_solver='arpack')
+
+  sc.pp.neighbors(parasite, n_neighbors=10, n_pcs=40)
+  sc.pp.neighbors(host, n_neighbors=10, n_pcs=40)
+
+  sc.tl.umap(parasite)
+  sc.tl.umap(host)
+
+  sc.tl.leiden(parasite)
+  sc.tl.leiden(host)
+
+  ppr.pprint("re-clustering done")
+
+  paraTable = parasite.obs.leiden
+  hostTable = host.obs.leiden
+
+  paraD = {}
+  hostD = {}
+
+  for x in parasite.obs.leiden.cat.categories: # iterate over every category
+    for y in range(0,len(paraTable)): # and every cell
+      v = paraTable[y]
+      if v == x:
+        cell_label = paraTable.index[y]
+        if x not in paraD:
+          paraD[x] = [cell_label]
+        else:
+          paraD[x].append(cell_label)
+
+  for x in host.obs.leiden.cat.categories: # iterate over every category
+    for y in range(0,len(hostTable)): # and every cell
+      v = hostTable[y]
+      if v == x:
+        cell_label = hostTable.index[y]
+        if x not in hostD:
+          hostD[x] = [cell_label]
+        else:
+          hostD[x].append(cell_label)
+
+  matches = {}
+
+  for x in paraD:
+    for y in hostD:
+      c_k = str(x) + "_" + str(y)
+      p = set(paraD[x])
+      h = set(hostD[y])
+      counts = len(p.intersection(h))
+      matches[c_k] = counts
+
+  ppr.pprint("overlap analysis done")
+
+  most_overlaps = max(matches,key=matches.get)
+
+  fig1 = sc.tl.umap(parasite)
+  #fig2 = sc.tl.umap(host, color=["leiden"])
+
+  fig3 = plt.gcf()
+
+  finalfig = iostreamFig(fig3)
+
+  ppr.pprint("plot-making done")
+
+  resList = [most_overlaps, finalfig]
+
+  ppr.pprint("resList ready")
+
+  return json.dumps(resList)

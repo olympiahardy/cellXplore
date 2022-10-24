@@ -549,6 +549,7 @@
       <button class="tablinks" onclick="selFun(event, 'GD')">Gene Detected</button>
       <button class="tablinks" onclick="selFun(event, 'CellPopView');getAllCells();detectOrganism()">Cell Population View</button>
       <button class="tablinks" onclick="selFun(event, 'Pseudo');getAllCells()">Pseudotime Inference</button>
+      <button class="tablinks" onclick="selFun(event, 'HostParasite');getAllCells()">Host-Parasite Interactions</button>
       <button class="tablinks" onclick="selFun(event, 'DEG');defaultTopSel('DEGtop','DEGtopBT1');detectOrganism()">DEG</button>
       <button id="preDEGpanelBT" class="tablinks" onclick="selFun(event, 'preDEGpanel');defaultTopSel('DEG','DEGlinksPlot')" style="display: none;">Pre-Computed DEG</button>
       <button class="tablinks" onclick="selFun(event, 'MARK')">Marker Genes</button>
@@ -680,6 +681,17 @@
       <p id="pseudoFig"></p>
       <p id="pseudoNote" style="color:red;"></p>
     </div><!--Pseudo-->
+
+    <div id="HostParasite" class="tabcontent">
+      <div id="hpInput">
+        <h3>Run Host-Parasite Interaction analyses within VIP:</h3>
+        <p>Host-Parasite Cluster Comparision:
+        <button class="hpCC" onclick="hpClusterCompare()"><b>Run Comparision</b></button>
+      </div>
+      <div id="hpSpin" class="loading style-2" style="visibility: hidden;"><div class="loading-wheel"></div></div>
+      <p id="hpFig"></p>
+      <p id="hpNote" style="color:red;"></p>
+    </div><!--HostParasite-->
 
     <div id="GD" class=tabcontent>
       <div id="GDinput">
@@ -5650,8 +5662,42 @@ function pseudoPlot(){
     console.log('error!');
   }
 })
+}
 
+function hpClusterCompare(){
 
+document.getElementById("hpSpin").style.visibility="visible";
+
+var D = {'method':'hp_cc'};
+
+$.ajax({
+  type:"POST",
+  url: VIPurl,
+  data:JSON.stringify(D),
+  contentType: 'application/json;charset=UTF-8',//
+  success: function(res){
+
+    document.getElementById("hpSpin").style.visibility="hidden";
+
+    console.log(res);
+
+    resD = JSON.parse(res);
+
+    console.log(resD[0])
+    console.log(resD[1])
+
+    console.log(typeof(resD[0]))
+    console.log(typeof(resD[1]))
+
+    $("#hpNote").text(most_overlap);
+
+    showImg('hpFig',fig);
+
+  },
+  error: function() {
+    console.log('error!');
+  }
+})
 }
 
 var database_URL;
