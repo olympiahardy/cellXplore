@@ -689,8 +689,9 @@
         <button class="hpCC" onclick="hpClusterCompare()"><b>Run Comparision</b></button>
       </div>
       <div id="hpSpin" class="loading style-2" style="visibility: hidden;"><div class="loading-wheel"></div></div>
-      <p id="hpFig"></p>
       <p id="hpNote" style="color:red;"></p>
+      <p id="hpFig"></p>
+      <p id="hpFig2"></p>
     </div><!--HostParasite-->
 
     <div id="GD" class=tabcontent>
@@ -1866,6 +1867,7 @@ function ZoomOut(strDiv){
   $("#"+strDiv).width(Math.max(10,r)+'%');
 }
 function showImg(eID,data){
+  console.log("showImg start")
   if(data.length<5){
     data = "iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAEklEQVQYGWP4jwUwYBH7T6EgAG8TY53uGzeKAAAAAElFTkSuQmCC";
   }
@@ -1874,6 +1876,7 @@ function showImg(eID,data){
   } else {
     document.getElementById(eID).innerHTML = '<img id="'+eID.replace('fig','img')+'" src="data:image/'+window.figOpt['img'].replace('svg','svg+xml')+';base64,'+data+'" width="100%" height="auto"/>';
   }
+  console.log("showImg end")
 }
 function saveImg(pngID){
   var gh = document.getElementById(pngID).src;
@@ -5680,18 +5683,27 @@ $.ajax({
     document.getElementById("hpSpin").style.visibility="hidden";
 
     console.log(res);
+    console.log(typeof(res));
+
+    //$("#hpNote").text(res);
+    //showImg('hpFig',res);
 
     resD = JSON.parse(res);
 
     console.log(resD[0])
     console.log(resD[1])
+    console.log(resD[2])
 
-    console.log(typeof(resD[0]))
-    console.log(typeof(resD[1]))
+    //console.log(typeof(resD[0]))
+    //console.log(typeof(resD[1]))
 
-    $("#hpNote").text(most_overlap);
+    //$("#hpNote").text("testing");
+    $("#hpNote").text(resD[0]);
 
-    showImg('hpFig',fig);
+    showImg('hpFig',resD[1]);
+    showImg('hpFig2',resD[2]);
+
+    console.log("end of ajax block reached");
 
   },
   error: function() {

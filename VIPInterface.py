@@ -1784,17 +1784,27 @@ def hp_ClusterCompare(data):
 
   most_overlaps = max(matches,key=matches.get)
 
-  fig1 = sc.tl.umap(parasite)
-  #fig2 = sc.tl.umap(host, color=["leiden"])
+  fig1 = sc.pl.umap(parasite, color = ["leiden"])
+  #fig2 = sc.pl.umap(host, color=["leiden"])
 
-  fig3 = plt.gcf()
+  #fig1 = iostreamFig(fig1)
+  #fig2 = iostreamFig(fig2)
 
-  finalfig = iostreamFig(fig3)
+  #fig3 = fig1 + fig2
+
+  finalfig = plt.gcf()
+
+  finalfig = iostreamFig(finalfig)
+
+  fig2 = sc.pl.umap(host, color=["leiden"])
+  finalfig2 = plt.gcf()
+  finalfig2 = iostreamFig(finalfig2)
 
   ppr.pprint("plot-making done")
 
-  resList = [most_overlaps, finalfig]
+  resList = [most_overlaps, finalfig, finalfig2]
 
   ppr.pprint("resList ready")
 
+  #return json.dumps(resList)
   return json.dumps(resList)
