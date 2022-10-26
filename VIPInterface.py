@@ -1854,17 +1854,17 @@ def tradeSeqPlot(data):
     smoothCombo = do.call("rbind",smoothList)
     x = PlotSmoothers(some_data, gene = gene1, Xcolnames = Xcols, lwd = 0.3, size = 1/10, plotLineages = FALSE, pointCol = "Group") + 
     geom_smooth(data = smoothCombo, aes(x = time, y = .data[[gene1]],group = combo, colour = combo))
-   
-    #tempFig = "/home/ed/CXG_Testing/tempFig.png"
-    #tempFig = strPath + "/tempFig_" + s_id + ".png"
-    tempFig = paste(strPath,"/tempFig_",s_id,".png", sep="")
-    ggsave(tempFig, x)
-    fig = base64enc::dataURI(file = tempFig, mime = "image/png")
+    
+    tempID = paste(s_id,".png",sep="")
+    ggsave(tempID, x)
+    
+    fig = base64enc::dataURI(file = tempID, mime = "image/png")
+    
     fig = gsub("data:image/png;base64,","",fig)
-    a <- file.remove(tempFig)
+    file.remove(tempID)
     fig
     ''')
 
   img = res[0]
-
+ 
   return img
