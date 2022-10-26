@@ -35,6 +35,7 @@ from rpy2.robjects.conversion import localconverter
 import anndata2ri
 from datetime import datetime
 import random
+import scprep
 
 strExePath = os.path.dirname(os.path.abspath(__file__))
 
@@ -307,7 +308,9 @@ def distributeTask(aTask):
     'ymlPARSE':parseYAML,
     'pseudo':pseudoPlot,
     'tradeSeq':tsTable,
-    'tradeSeqPlotting':tradeSeqPlot
+    'tradeSeqPlotting':tradeSeqPlot,
+    'slingshot':slingshotPlot,
+    'PAGA':pagaAnalysis
   }.get(aTask,errorTask)
 
 def HELLO(data):
@@ -1868,3 +1871,65 @@ def tradeSeqPlot(data):
   img = res[0]
  
   return img
+
+def pagaAnalysis(data):
+
+  #create annData object
+
+  adata = createData(data)
+
+  embed = data["layout"]
+
+  annot = data["grp"][0]
+
+  embedding = "X_" + embed
+
+  sc.pp.neighbors(adata, n_neighbors=10, use_rep=embedding)
+
+  sc.tl.paga(adata, groups=annot) #run PAGA
+
+  sc.pl.paga(adata, color=annot)
+
+  fig = plt.gcf()
+
+  return iostreamFig(fig)
+
+def dypseudoPlot_2(data):
+  
+  adata = createData(data)
+
+  embed = data["layout"]
+
+  embedding = "X_" + embed
+
+  r_dims = adata.obsm[embedding]
+
+  clusterKey = data['grp'][0]
+  starting_cluster = data["start_clus"]
+  ending_cluster = data["end_clus"]
+
+  clusters = adata.obs[clusterKey]
+
+  if starting_cluster == "Null" and ending_cluster == "Null":
+    results = scprep.run.Slingshot(r_dims,clusters)
+  elif ending_cluster == "Null":
+    results = scprep.run.Slingshot(r_dims,clusters, start_cluster = starting_cluster)
+  elif starting_cluster == "Null":
+    results = scprep.run.Slingshot(r_dims,clusters, end_cluster = ending_cluster)
+  else:
+    results = scprep.run.Slingshot(r_dims,clusters, start_cluster = starting_cluster, end_cluster = ending_cluster)
+
+  ax = scprep.plot.scatter2d(
+     r_dims,
+     c=results['pseudotime'][:,0],
+     cmap='magma',
+     legend_title='Branch 1'
+)
+
+  for curve in results['curves']:
+    ax.plot(curve[:,0], curve[:,1], c='k', linewidth=3)
+
+  fig = plt.gcf()
+
+  return iostreamFig(fig)
+

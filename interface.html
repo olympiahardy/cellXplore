@@ -6024,6 +6024,95 @@ error: function() {
 
 }
 
+function slingshotPlot(){
+
+document.getElementById("slingshotSpin").style.visibility="visible";
+
+var grp = [];
+
+ss_grp = document.getElementById("slingshot_cluster_key").value;
+
+grp.push(ss_grp)
+
+ss_embedding = document.getElementById("slingshotEmbed").value;
+
+ss_start_clus = document.getElementById("slingshot_start_clus").value;
+
+ss_end_clus = document.getElementById("slingshot_end_clus").value;
+
+
+var D = 
+{
+'method':'slingshot',
+'dataset': window.store.getState().config.displayNames.dataset+'.h5ad',
+'cells': AllCells,
+'genes':[],
+'layout':ss_embedding,
+'grp':grp,
+'start_clus':ss_start_clus,
+'end_clus':ss_end_clus
+}
+
+
+$.ajax({
+type:"POST",
+url: VIPurl,
+data:JSON.stringify(D),
+contentType: 'application/json;charset=UTF-8',//
+success: function(res){
+
+  console.log(res)
+  document.getElementById("slingshotSpin").style.visibility="hidden";
+  showImg('slingshotFig',res)
+
+},
+error: function() {
+  console.log('error!');
+}
+})
+}
+
+function pagaPlot(){
+
+  document.getElementById("pagaSpin").style.visibility="visible";
+
+  var grp = [];
+
+  paga_grp = document.getElementById("paga_cluster_key").value;
+
+  grp.push(paga_grp)
+
+  paga_embedding = document.getElementById("pagaEmbed").value;
+
+  var D = 
+  {
+  'method':'PAGA',
+  'dataset': window.store.getState().config.displayNames.dataset+'.h5ad',
+  'cells': AllCells,
+  'genes':[],
+  'layout':paga_embedding,
+  'grp':grp
+  }
+
+
+$.ajax({
+type:"POST",
+url: VIPurl,
+data:JSON.stringify(D),
+contentType: 'application/json;charset=UTF-8',//
+success: function(res){
+
+  console.log(res)
+  document.getElementById("pagaSpin").style.visibility="hidden";
+  showImg('pagaFig',res)
+
+},
+error: function() {
+  console.log('error!');
+}
+})
+}
+
 var database_URL;
 var databaseSearch_URL;
 
