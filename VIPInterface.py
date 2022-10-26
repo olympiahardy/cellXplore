@@ -1894,7 +1894,7 @@ def pagaAnalysis(data):
 
   return iostreamFig(fig)
 
-def dypseudoPlot_2(data):
+def slingshotPlot(data):
   
   adata = createData(data)
 
