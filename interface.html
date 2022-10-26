@@ -550,6 +550,7 @@
       <button class="tablinks" onclick="selFun(event, 'CellPopView');getAllCells();detectOrganism()">Cell Population View</button>
       <button class="tablinks" onclick="selFun(event, 'TIA');defaultTopSel('TIA','pseudo_tab');getAllCells()">Trajectory Inference</button>
       <button class="tablinks" onclick="selFun(event, 'TradeSeq');getAllCells();CellPopList('TS')">TradeSeq</button>
+      <button class="tablinks" onclick="selFun(event, 'HostParasite');getAllCells()">Host-Parasite Interactions</button>
       <button class="tablinks" onclick="selFun(event, 'DEG');defaultTopSel('DEGtop','DEGtopBT1');detectOrganism()">DEG</button>
       <button id="preDEGpanelBT" class="tablinks" onclick="selFun(event, 'preDEGpanel');defaultTopSel('DEG','DEGlinksPlot')" style="display: none;">Pre-Computed DEG</button>
       <button class="tablinks" onclick="selFun(event, 'MARK')">Marker Genes</button>
@@ -688,6 +689,18 @@
       <table id="tradeSeqdatatable" class="display"></table>
       <p id="tradeSeqFig"></p>
     </div><!--TradeSeq-->
+
+    <div id="HostParasite" class="tabcontent">
+      <div id="hpInput">
+        <h3>Run Host-Parasite Interaction analyses within VIP:</h3>
+        <p>Host-Parasite Cluster Comparision:
+        <button class="hpCC" onclick="hpClusterCompare()"><b>Run Comparision</b></button>
+      </div>
+      <div id="hpSpin" class="loading style-2" style="visibility: hidden;"><div class="loading-wheel"></div></div>
+      <p id="hpNote" style="color:red;"></p>
+      <p id="hpFig"></p>
+      <p id="hpFig2"></p>
+    </div><!--HostParasite-->
 
     <div id="GD" class=tabcontent>
       <div id="GDinput">
@@ -6109,6 +6122,36 @@ success: function(res){
 error: function() {
   console.log('error!');
 }
+})
+}
+
+
+function hpClusterCompare(){
+
+document.getElementById("hpSpin").style.visibility="visible";
+
+var D = {'method':'hp_cc'};
+
+$.ajax({
+  type:"POST",
+  url: VIPurl,
+  data:JSON.stringify(D),
+  contentType: 'application/json;charset=UTF-8',//
+  success: function(res){
+
+    document.getElementById("hpSpin").style.visibility="hidden";
+
+    resD = JSON.parse(res);
+
+    $("#hpNote").text(resD[0]);
+
+    showImg('hpFig',resD[1]);
+    showImg('hpFig2',resD[2]);
+
+  },
+  error: function() {
+    console.log('error!');
+  }
 })
 }
 
