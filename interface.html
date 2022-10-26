@@ -2209,8 +2209,6 @@ function init(){
     //--------------------------------------------------------------------------
     // add Pseudotime Annotation
 
-    // add Pseudotime Annotation
-
     var pseudonames = window.store.getState().annoMatrix.schema.annotations.obsByName;
 
     pseudoannots = Object.keys(pseudonames);
@@ -2235,7 +2233,7 @@ function init(){
      }
    }
 
-   
+
     // add gene annotation categories (CellPopViw Tab)
 
     var featureCats = Object.entries(store.getState().annoMatrix.schema.annotations.var.columns)
@@ -5913,7 +5911,7 @@ if(comboList.length == 0) {
 }
 
 var D = {
-'method':'dyrpy2',
+'method':'tradeSeqPlotting',
 'dataset': window.store.getState().config.displayNames.dataset,
 'cells':AllCells,
 'genes':[],

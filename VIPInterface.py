@@ -29,6 +29,12 @@ import os
 import re
 import glob
 import subprocess
+import rpy2
+import rpy2.robjects as ro
+from rpy2.robjects.conversion import localconverter
+import anndata2ri
+from datetime import datetime
+import random
 
 strExePath = os.path.dirname(os.path.abspath(__file__))
 
@@ -299,7 +305,9 @@ def distributeTask(aTask):
     'CPV':cellpopview,
     'CPVTable':cpvtable,
     'ymlPARSE':parseYAML,
-    'pseudo':pseudoPlot
+    'pseudo':pseudoPlot,
+    'tradeSeq':tsTable,
+    'tradeSeqPlotting':tradeSeqPlot
   }.get(aTask,errorTask)
 
 def HELLO(data):
@@ -1704,3 +1712,159 @@ def getDesp_2(data):
   txt = "<br>"+"<b>"+"Data Source:"+"</b>"+"<br>"+desc+"<br>"+paper+"<br>"+"<b>"+"Authors: "+"</b>"+aut+"<br>"+full_url
   
   return txt
+
+def tsTable(data):
+  
+  gInfo = getVar(data)
+ 
+  c1 = gInfo["features"]
+
+  tableO = data["tableOption"]
+
+  cond = data["cond"]
+ 
+  if tableO == "General":
+    c2 = gInfo["waldStat_G"]
+    c3 = gInfo['df_G']
+    c4 = gInfo['p-value_G']
+  elif cond:
+    tail = "_" + tableO + "/" + cond
+    c2 = gInfo["waldStat" + tail]
+    c3 = gInfo["df" + tail]
+    c4 = gInfo["p-value" + tail]
+  else:
+    tail = "_" + tableO
+    c2 = gInfo["waldStat" + tail]
+    c3 = gInfo["df" + tail]
+    c4 = gInfo["p-value" + tail]
+ 
+ 
+  c5 = gInfo["meanLogFC"]
+ 
+  data = {
+    "Genes": c1,
+    "waldStat":c2,
+    "df":c3,
+    "p-value":c4,
+    "MeanLogFC":c5
+    }
+ 
+  deg = pd.DataFrame(data)
+ 
+  res = deg.to_csv(index=False)
+
+  return json.dumps(res)
+
+def tradeSeqPlot(data):
+  
+  #Read in Data
+
+  ppr.pprint("reading in data")
+  
+  with app.get_data_adaptor() as data_adaptor:
+    adata = data_adaptor.data.copy()
+  
+
+  #Convert sparse matrix to dense in order to avoid conversion error
+
+  ppr.pprint("dense matrix conversion")
+  
+  adata.X = adata.X.todense()
+
+  ppr.pprint("Rpy2 conversion")
+
+  #Convert anndata to SCE within embedded R global environment
+  with localconverter(anndata2ri.converter):
+      ro.globalenv['some_data'] = adata
+
+
+  #read in plotting parameters
+
+  gene = data["gene"]
+
+  combinations = data["combos"]
+
+  Xcolumns = adata.uns["tradeSeq_Xcols"]
+  ppr.pprint(Xcolumns)
+  ppr.pprint(type(Xcolumns))
+
+  Xcolumns = Xcolumns.tolist()
+
+  #send plotting parameters to 
+
+  ro.globalenv['gene1'] = gene
+  ro.globalenv['combos'] = combinations
+  ro.globalenv['Xcols'] = Xcolumns
+
+  ppr.pprint("sourcing function file")
+
+  # Source function file
+  r = ro.r
+  r['source'](strExePath+'/tsPlot4.R')
+  
+  ppr.pprint("running R code")
+
+  # Generate SessionID
+
+  valList = []
+
+  for i in range(10):
+    value = random.randint(0,10)
+    valList.append(value)
+    
+  session_id = ''.join([str(n) for n in valList])
+  ro.globalenv['s_id'] = session_id
+
+  ro.globalenv["strPath"] = strExePath
+
+  res = ro.r('''
+    smooth = predictSmoother(some_data,gene1)
+    #create color palette
+    colList = rainbow(length(combos))
+    #iterate over every combination
+    smoothList = list()
+    i = 1
+    
+    for(x in combos){
+      lin = x[1]
+      cond = x[2]
+      if(cond != "All"){
+        str1 = paste(cond,lin)
+        smooth_con = subset(smooth, condition == cond)
+        smooth_con_lin = subset(smooth_con, lineage == lin)
+        finalSmooth = pivot_wider(smooth_con_lin, names_from = gene, values_from = yhat)
+        finalSmooth = as.data.frame(finalSmooth)
+        finalSmooth$combo = str1
+        smoothList[[i]] = finalSmooth
+        i = i + 1
+      }else{
+        allConds = unique(smooth$condition)
+        for(c in allConds){
+          str1 = paste(c,lin)
+          smooth_con = subset(smooth, condition == c)
+          smooth_con_lin = subset(smooth_con, lineage == lin)
+          finalSmooth = pivot_wider(smooth_con_lin, names_from = gene, values_from = yhat)
+          finalSmooth = as.data.frame(finalSmooth)
+          finalSmooth$combo = str1
+          smoothList[[i]] = finalSmooth
+          i = i + 1
+        }
+      }
+    }
+    smoothCombo = do.call("rbind",smoothList)
+    x = PlotSmoothers(some_data, gene = gene1, Xcolnames = Xcols, lwd = 0.3, size = 1/10, plotLineages = FALSE, pointCol = "Group") + 
+    geom_smooth(data = smoothCombo, aes(x = time, y = .data[[gene1]],group = combo, colour = combo))
+   
+    #tempFig = "/home/ed/CXG_Testing/tempFig.png"
+    #tempFig = strPath + "/tempFig_" + s_id + ".png"
+    tempFig = paste(strPath,"/tempFig_",s_id,".png", sep="")
+    ggsave(tempFig, x)
+    fig = base64enc::dataURI(file = tempFig, mime = "image/png")
+    fig = gsub("data:image/png;base64,","",fig)
+    a <- file.remove(tempFig)
+    fig
+    ''')
+
+  img = res[0]
+
+  return img
