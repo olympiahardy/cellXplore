@@ -310,7 +310,8 @@ def distributeTask(aTask):
     'tradeSeq':tsTable,
     'tradeSeqPlotting':tradeSeqPlot,
     'slingshot':slingshotPlot,
-    'PAGA':pagaAnalysis
+    'PAGA':pagaAnalysis,
+    'hp_cc':hp_ClusterCompare
   }.get(aTask,errorTask)
 
 def HELLO(data):
@@ -1762,24 +1763,16 @@ def tradeSeqPlot(data):
   
   #Read in Data
 
-  ppr.pprint("reading in data")
-  
   with app.get_data_adaptor() as data_adaptor:
     adata = data_adaptor.data.copy()
   
-
   #Convert sparse matrix to dense in order to avoid conversion error
 
-  ppr.pprint("dense matrix conversion")
-  
   adata.X = adata.X.todense()
-
-  ppr.pprint("Rpy2 conversion")
 
   #Convert anndata to SCE within embedded R global environment
   with localconverter(anndata2ri.converter):
       ro.globalenv['some_data'] = adata
-
 
   #read in plotting parameters
 
@@ -1788,8 +1781,6 @@ def tradeSeqPlot(data):
   combinations = data["combos"]
 
   Xcolumns = adata.uns["tradeSeq_Xcols"]
-  ppr.pprint(Xcolumns)
-  ppr.pprint(type(Xcolumns))
 
   Xcolumns = Xcolumns.tolist()
 
@@ -1799,14 +1790,11 @@ def tradeSeqPlot(data):
   ro.globalenv['combos'] = combinations
   ro.globalenv['Xcols'] = Xcolumns
 
-  ppr.pprint("sourcing function file")
-
   # Source function file
   r = ro.r
-  r['source'](strExePath+'/tsPlot4.R')
+  #r['source'](strExePath+'/tsPlot4.R')
+   r['source']('/home/cellxgene/cellxgene_VIP/tsPlot4.R')
   
-  ppr.pprint("running R code")
-
   # Generate SessionID
 
   valList = []
@@ -2024,16 +2012,20 @@ def hp_ClusterCompare(data):
 
   most_overlaps = max(matches,key=matches.get)
 
-  fig1 = sc.pl.umap(parasite, color = ["leiden"])
+  templist = most_overlaps.split("_")
+
+  restext = "Host Cluster " + templist[0] + " and Parasite Cluster " + templist[1] + " show the most overlap."
+
+  fig1 = sc.pl.umap(parasite, color = ["leiden"], title = "Parasite")
 
   finalfig = plt.gcf()
 
   finalfig = iostreamFig(finalfig)
 
-  fig2 = sc.pl.umap(host, color=["leiden"])
+  fig2 = sc.pl.umap(host, color=["leiden"], title = "Host")
   finalfig2 = plt.gcf()
   finalfig2 = iostreamFig(finalfig2)
 
-  resList = [most_overlaps, finalfig, finalfig2]
+  resList = [restext, finalfig, finalfig2]
 
   return json.dumps(resList)

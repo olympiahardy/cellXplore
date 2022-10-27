@@ -697,7 +697,7 @@
         <button class="hpCC" onclick="hpClusterCompare()"><b>Run Comparision</b></button>
       </div>
       <div id="hpSpin" class="loading style-2" style="visibility: hidden;"><div class="loading-wheel"></div></div>
-      <p id="hpNote" style="color:red;"></p>
+      <p id="hpNote" style="color:blue;"></p>
       <p id="hpFig"></p>
       <p id="hpFig2"></p>
     </div><!--HostParasite-->
@@ -6140,6 +6140,8 @@ $.ajax({
   success: function(res){
 
     document.getElementById("hpSpin").style.visibility="hidden";
+
+    console.log(res);
 
     resD = JSON.parse(res);
 
