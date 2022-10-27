@@ -1923,13 +1923,10 @@ def slingshotPlot(data):
 
 def hp_ClusterCompare(data):
   
-  ppr.pprint("Start of function")
+  with app.get_data_adaptor() as data_adaptor:
+    adata = data_adaptor.data.copy()
 
-  # get copy of currently loaded data
-  #with app.get_data_adaptor() as data_adaptor:
-    #adata = data_adaptor.data.copy()
-
-  adata = sc.read_h5ad("/home/ed/data_cxg/hepatoVivax.h5ad")
+  adata.var_names = adata.uns["gene_names"]
 
   gene_list = adata.var_names
   ppr.pprint(gene_list)
