@@ -694,7 +694,9 @@
       <div id="hpInput">
         <h3>Run Host-Parasite Interaction analyses within VIP:</h3>
         <p>Host-Parasite Cluster Comparision:
-        <button class="hpCC" onclick="hpClusterCompare()"><b>Run Comparision</b></button>
+        <button class="hpCC" onclick="hpClusterCompare('hp_cc_para')"><b>Cluster by Parasite</b></button>
+        <button class="hpCC" onclick="hpClusterCompare('hp_cc_host')"><b>Cluster by Host</b></button>
+        <button class="hpCC" onclick="hpClusterCompare('hp_cc')"><b>Find Overlap</b></button>
       </div>
       <div id="hpSpin" class="loading style-2" style="visibility: hidden;"><div class="loading-wheel"></div></div>
       <p id="hpNote" style="color:blue;"></p>
@@ -6126,11 +6128,11 @@ error: function() {
 }
 
 
-function hpClusterCompare(){
+function hpClusterCompare(hp_option){
 
 document.getElementById("hpSpin").style.visibility="visible";
 
-var D = {'method':'hp_cc'};
+var D = {'method':hp_option};
 
 $.ajax({
   type:"POST",
@@ -6143,12 +6145,18 @@ $.ajax({
 
     console.log(res);
 
+    if(hp_option!='hp_cc'){
+
     resD = JSON.parse(res);
 
     $("#hpNote").text(resD[0]);
 
-    showImg('hpFig',resD[1]);
-    showImg('hpFig2',resD[2]);
+    showImg(resD[1],resD[2]);
+    }else{
+
+      $("#hpNote").text(res);
+
+    }
 
   },
   error: function() {

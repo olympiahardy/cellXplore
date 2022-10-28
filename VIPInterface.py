@@ -311,6 +311,8 @@ def distributeTask(aTask):
     'tradeSeqPlotting':tradeSeqPlot,
     'slingshot':slingshotPlot,
     'PAGA':pagaAnalysis,
+    'hp_cc_para':hp_paraClus,
+    'hp_cc_host':hp_hostClus,
     'hp_cc':hp_ClusterCompare
   }.get(aTask,errorTask)
 
@@ -1921,6 +1923,107 @@ def slingshotPlot(data):
 
   return iostreamFig(fig)
 
+def hp_paraClus(data):
+
+  with app.get_data_adaptor() as data_adaptor:
+    adata = data_adaptor.data
+
+  copyData = adata
+  copyData.var_names = copyData.uns["gene_names"]
+
+  gene_list = copyData.var_names
+  ppr.pprint(gene_list)
+
+  parasiteGenes = []
+
+  for x in gene_list:
+    if x.startswith("PV"):
+        parasiteGenes.append(x)
+
+  # Split Data ----------
+
+  parasite = copyData[:,parasiteGenes]
+
+  sc.pp.highly_variable_genes(parasite)
+
+  parasite = parasite[:, parasite.var.highly_variable]
+
+  sc.tl.pca(parasite, svd_solver='arpack')
+
+  sc.pp.neighbors(parasite, n_neighbors=10, n_pcs=40)
+
+  sc.tl.umap(parasite)
+
+  sc.tl.leiden(parasite, key_added = "parasite_clusters")
+
+  adata.obs['parasite_clusters'] = parasite.obs["parasite_clusters"]
+
+  adata.obs['parasite_clusters'] = parasite.obs["parasite_clusters"].values
+
+  fig1 = sc.pl.umap(parasite, color = ["parasite_clusters"], title = "Parasite Clusters")
+
+  fig1 = plt.gcf()
+
+  finalfig = iostreamFig(fig1)
+
+  html = "hpFig"
+
+  note = ""
+
+  resList = [note, html, finalfig]
+
+  return json.dumps(resList)
+
+
+def hp_hostClus(data):
+ 
+  with app.get_data_adaptor() as data_adaptor:
+    adata = data_adaptor.data
+
+  copyData = adata
+
+  copyData.var_names = copyData.uns["gene_names"]
+
+  hostGenes = []
+
+  for x in copyData.var_names:
+    if x.startswith("ENS"):
+        hostGenes.append(x)
+
+  # Split Data ----------
+
+  host = copyData[:,hostGenes]
+
+  sc.pp.highly_variable_genes(host)
+
+  host = host[:, host.var.highly_variable]
+
+  sc.tl.pca(host, svd_solver='arpack')
+
+  sc.pp.neighbors(host, n_neighbors=10, n_pcs=40)
+
+  sc.tl.umap(host)
+
+  sc.tl.leiden(host, key_added = "host_clusters")
+
+  adata.obs['host_clusters'] = host.obs["host_clusters"]
+
+  adata.obs['host_clusters'] = host.obs["host_clusters"].values
+
+  fig1 = sc.pl.umap(host, color = ["host_clusters"], title = "Host Clusters")
+
+  fig1 = plt.gcf()
+
+  finalfig = iostreamFig(fig1)
+
+  html = "hpFig2"
+
+  note = ""
+
+  resList = [note, html, finalfig]
+
+  return json.dumps(resList)
+
 def hp_ClusterCompare(data):
   
   with app.get_data_adaptor() as data_adaptor:
@@ -1928,56 +2031,13 @@ def hp_ClusterCompare(data):
 
   adata.var_names = adata.uns["gene_names"]
 
-  gene_list = adata.var_names
-  ppr.pprint(gene_list)
-
-  parasiteGenes = []
-  hostGenes = []
-
-  for x in gene_list:
-    if x.startswith("PV"):
-        parasiteGenes.append(x)
-    else:
-        hostGenes.append(x)
-
-  # Split Data ----------
-
-  parasite = adata[:,parasiteGenes]
-  host = adata[:,hostGenes]
-
-  # Recalculate highly variable genes
-
-  sc.pp.highly_variable_genes(parasite)
-  sc.pp.highly_variable_genes(host)
-
-# hvg filter
-
-  parasite = parasite[:, parasite.var.highly_variable]
-  host = host[:, host.var.highly_variable]
-
-  ppr.pprint("hvg filter")
-
-# PCA
-
-  sc.tl.pca(parasite, svd_solver='arpack')
-  sc.tl.pca(host, svd_solver='arpack')
-
-  sc.pp.neighbors(parasite, n_neighbors=10, n_pcs=40)
-  sc.pp.neighbors(host, n_neighbors=10, n_pcs=40)
-
-  sc.tl.umap(parasite)
-  sc.tl.umap(host)
-
-  sc.tl.leiden(parasite)
-  sc.tl.leiden(host)
-
-  paraTable = parasite.obs.leiden
-  hostTable = host.obs.leiden
+  paraTable = adata.obs['parasite_clusters']
+  hostTable = adata.obs['host_clusters']
 
   paraD = {}
   hostD = {}
 
-  for x in parasite.obs.leiden.cat.categories: # iterate over every category
+  for x in adata.obs['parasite_clusters'].cat.categories: # iterate over every category
     for y in range(0,len(paraTable)): # and every cell
       v = paraTable[y]
       if v == x:
@@ -1987,7 +2047,7 @@ def hp_ClusterCompare(data):
         else:
           paraD[x].append(cell_label)
 
-  for x in host.obs.leiden.cat.categories: # iterate over every category
+  for x in adata.obs['host_clusters'].cat.categories: # iterate over every category
     for y in range(0,len(hostTable)): # and every cell
       v = hostTable[y]
       if v == x:
@@ -2013,16 +2073,6 @@ def hp_ClusterCompare(data):
 
   restext = "Host Cluster " + templist[0] + " and Parasite Cluster " + templist[1] + " show the most overlap."
 
-  fig1 = sc.pl.umap(parasite, color = ["leiden"], title = "Parasite")
+  return restext
 
-  finalfig = plt.gcf()
 
-  finalfig = iostreamFig(finalfig)
-
-  fig2 = sc.pl.umap(host, color=["leiden"], title = "Host")
-  finalfig2 = plt.gcf()
-  finalfig2 = iostreamFig(finalfig2)
-
-  resList = [restext, finalfig, finalfig2]
-
-  return json.dumps(resList)
