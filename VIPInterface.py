@@ -1885,39 +1885,94 @@ def pagaAnalysis(data):
   return iostreamFig(fig)
 
 def slingshotPlot(data):
+
+  sys.path.append(strExePath)
+  import slingshot_functions
+
+  ppr.pprint("imported functions!")
+
+  with app.get_data_adaptor() as data_adaptor:
+    tb = data_adaptor.data.copy()
+
+  tb_phate = tb.obsm["X_phate"]
+
+  cluster_labels = tb.obs["Cell_Type"]
+
+  cluster_labels = pd.DataFrame(cluster_labels)
+
+  cluster_labels["Cell_Type"].replace(['LS A.1', 'LS A.2', 'LS B.1', 'LS B.2', 'SS A', 'SS B'],[0,1,2,3,4,5],inplace=True)
+
+  cluster_labels = cluster_labels['Cell_Type']
+  cluster_labels = cluster_labels.to_numpy()
+
+  cluster_labels_onehot = np.zeros((cluster_labels.shape[0], cluster_labels.max()+1))
+  cluster_labels_onehot[np.arange(cluster_labels.shape[0]), cluster_labels] = 1
+
+  start_node = 0
+
+  slingshotOb = slingshot_functions.Slingshot2(tb_phate, cluster_labels_onehot, start_node=start_node)
+
+  #ppr.pprint("created slingshotOb!")
+
+  results = slingshotOb.fit2(slingshotOb)
+
+  #ppr.pprint("finished fit function!")
+
+  coordinates = results[0]
+
+  dim1 = []
+  dim2 = []
+
+  dim_1 = []
+  dim_2 = []
+
+  line0 = coordinates[0]
+  line1 = coordinates[1]
+
+  for x in line0:
+    dim1.append(x[0])
+    dim2.append(x[1])
+
+  for x in line1:
+    dim_1.append(x[0])
+    dim_2.append(x[1])
+
+  sc.pl.embedding(tb,"X_phate",color="Cell_Type",return_fig=True,color_map="Purples")
+  plt.plot(dim1,dim2, color="black")
+  plt.plot(dim_1,dim_2, color="black")
   
-  adata = createData(data)
+  #adata = createData(data)
 
-  embed = data["layout"]
+  #embed = data["layout"]
 
-  embedding = "X_" + embed
+  #embedding = "X_" + embed
 
-  r_dims = adata.obsm[embedding]
+  #r_dims = adata.obsm[embedding]
 
-  clusterKey = data['grp'][0]
-  starting_cluster = data["start_clus"]
-  ending_cluster = data["end_clus"]
+  #clusterKey = data['grp'][0]
+  #starting_cluster = data["start_clus"]
+  #ending_cluster = data["end_clus"]
 
-  clusters = adata.obs[clusterKey]
+  #clusters = adata.obs[clusterKey]
 
-  if starting_cluster == "Null" and ending_cluster == "Null":
-    results = scprep.run.Slingshot(r_dims,clusters)
-  elif ending_cluster == "Null":
-    results = scprep.run.Slingshot(r_dims,clusters, start_cluster = starting_cluster)
-  elif starting_cluster == "Null":
-    results = scprep.run.Slingshot(r_dims,clusters, end_cluster = ending_cluster)
-  else:
-    results = scprep.run.Slingshot(r_dims,clusters, start_cluster = starting_cluster, end_cluster = ending_cluster)
+  #if starting_cluster == "Null" and ending_cluster == "Null":
+    #results = scprep.run.Slingshot(r_dims,clusters)
+  #elif ending_cluster == "Null":
+    #results = scprep.run.Slingshot(r_dims,clusters, start_cluster = starting_cluster)
+  #elif starting_cluster == "Null":
+    #results = scprep.run.Slingshot(r_dims,clusters, end_cluster = ending_cluster)
+  #else:
+    #results = scprep.run.Slingshot(r_dims,clusters, start_cluster = starting_cluster, end_cluster = ending_cluster)
 
-  ax = scprep.plot.scatter2d(
-     r_dims,
-     c=results['pseudotime'][:,0],
-     cmap='magma',
-     legend_title='Branch 1'
-)
+  #ax = scprep.plot.scatter2d(
+     #r_dims,
+     #c=results['pseudotime'][:,0],
+     #cmap='magma',
+     #legend_title='Branch 1'
+#)
 
-  for curve in results['curves']:
-    ax.plot(curve[:,0], curve[:,1], c='k', linewidth=3)
+  #for curve in results['curves']:
+    #ax.plot(curve[:,0], curve[:,1], c='k', linewidth=3)
 
   fig = plt.gcf()
 
