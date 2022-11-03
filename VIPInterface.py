@@ -1886,7 +1886,7 @@ def pagaAnalysis(data):
 
 def slingshotPlot(data):
 
-  sys.path.append(strExePath)
+  sys.path.append('/home/cellxgene/cellxgene_VIP')
   import slingshot_functions
 
   ppr.pprint("imported functions!")
