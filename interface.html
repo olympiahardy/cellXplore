@@ -697,11 +697,13 @@
         <button class="hpCC" onclick="hpClusterCompare('hp_cc_para')"><b>Cluster by Parasite</b></button>
         <button class="hpCC" onclick="hpClusterCompare('hp_cc_host')"><b>Cluster by Host</b></button>
         <button class="hpCC" onclick="hpClusterCompare('hp_cc')"><b>Find Overlap</b></button>
+        <button class="hpViol" onclick="hpClusterCompare('hp_viol')"><b>Host-Parasite Violins</b></button>
       </div>
       <div id="hpSpin" class="loading style-2" style="visibility: hidden;"><div class="loading-wheel"></div></div>
       <p id="hpNote" style="color:blue;"></p>
       <p id="hpFig"></p>
       <p id="hpFig2"></p>
+      <p id="hpViolins"></p>
     </div><!--HostParasite-->
 
     <div id="GD" class=tabcontent>
@@ -6152,6 +6154,7 @@ $.ajax({
     $("#hpNote").text(resD[0]);
 
     showImg(resD[1],resD[2]);
+
     }else{
 
       $("#hpNote").text(res);
