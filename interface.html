@@ -2466,6 +2466,9 @@ function init(){
             //Add Description
             addDescription();
 
+            //Parse YAML file
+            yamlPARSE();
+
             //get GSEA Information
             getGSEA();
 
@@ -6214,9 +6217,9 @@ $.ajax({
 })
 }
 
-setTimeout(function(){
-  yamlPARSE();
-}, 8000);
+//setTimeout(function(){
+  //yamlPARSE();
+//}, 8000);
 
 var data
 
