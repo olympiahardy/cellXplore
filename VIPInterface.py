@@ -1991,9 +1991,10 @@ def hp_paraClus(data):
   ppr.pprint(gene_list)
 
   parasiteGenes = []
+  parasite_prefix = data['p_prefix']
 
   for x in gene_list:
-    if x.startswith("PV"):
+    if x.startswith(parasite_prefix):
         parasiteGenes.append(x)
 
   # Split Data ----------
@@ -2022,7 +2023,7 @@ def hp_paraClus(data):
 
   finalfig = iostreamFig(fig1)
 
-  html = "hpFig"
+  html = "parasiteFig"
 
   note = ""
 
@@ -2041,9 +2042,10 @@ def hp_hostClus(data):
   copyData.var_names = copyData.uns["gene_names"]
 
   hostGenes = []
+  host_prefix = data['h_prefix']
 
   for x in copyData.var_names:
-    if x.startswith("ENS"):
+    if x.startswith(host_prefix):
         hostGenes.append(x)
 
   # Split Data ----------
@@ -2072,7 +2074,7 @@ def hp_hostClus(data):
 
   finalfig = iostreamFig(fig1)
 
-  html = "hpFig2"
+  html = "hostFig"
 
   note = ""
 
@@ -2133,8 +2135,6 @@ def hp_ClusterCompare(data):
 
 
 def hpClusterViolins(data):
-
-  ppr.pprint("function started!")
 
   with app.get_data_adaptor() as data_adaptor:
     adata = data_adaptor.data.copy()

@@ -693,17 +693,19 @@
     <div id="HostParasite" class="tabcontent">
       <div id="hpInput">
         <h3>Run Host-Parasite Interaction analyses within VIP:</h3>
+        <p>Host-Parasite Percent Concent Violin Plots:
+        <button class="hpViol" onclick="hpAnalysis('hp_viol')"><b>Host-Parasite Violins</b></button>
+        <p id="hpViolins"></p>
+        </p>
         <p>Host-Parasite Cluster Comparision:
-        <button class="hpCC" onclick="hpClusterCompare('hp_cc_para')"><b>Cluster by Parasite</b></button>
-        <button class="hpCC" onclick="hpClusterCompare('hp_cc_host')"><b>Cluster by Host</b></button>
-        <button class="hpCC" onclick="hpClusterCompare('hp_cc')"><b>Find Overlap</b></button>
-        <button class="hpViol" onclick="hpClusterCompare('hp_viol')"><b>Host-Parasite Violins</b></button>
+        <button class="hpCC" onclick="hpAnalysis('hp_cc_host')"><b>Cluster by Host</b></button>
+        <button class="hpCC" onclick="hpAnalysis('hp_cc_para')"><b>Cluster by Parasite</b></button>
+        <button class="hpCC" onclick="hpAnalysis('hp_cc')"><b>Find Overlap</b></button>
       </div>
       <div id="hpSpin" class="loading style-2" style="visibility: hidden;"><div class="loading-wheel"></div></div>
       <p id="hpNote" style="color:blue;"></p>
-      <p id="hpFig"></p>
-      <p id="hpFig2"></p>
-      <p id="hpViolins"></p>
+      <p id="hostFig"></p>
+      <p id="parasiteFig"></p>
     </div><!--HostParasite-->
 
     <div id="GD" class=tabcontent>
@@ -6129,12 +6131,16 @@ error: function() {
 })
 }
 
+var parasitePrefix;
+var hostPrefix;
 
-function hpClusterCompare(hp_option){
+function hpAnalysis(hp_option){
 
 document.getElementById("hpSpin").style.visibility="visible";
 
-var D = {'method':hp_option};
+var D = {'method':hp_option,
+          'h_prefix':hostPrefix,
+          'p_prefix':parasitePrefix};
 
 $.ajax({
   type:"POST",
@@ -6194,6 +6200,9 @@ $.ajax({
   tsAnnot = res['tsAnnot']
 
   console.log(tsAnnot)
+  
+  hostPrefix = res['host_prefix']
+  parasitePrefix = res['parasite_prefix']
 
   },
   error: function() {
