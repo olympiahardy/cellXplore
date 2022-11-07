@@ -5806,23 +5806,14 @@ function CellPopTable(){
 }
 
 function pseudoPlot(){
-
-  var cells = AllCells;
-
-  var grp = [];
   
   var annot = document.getElementById("pseudo_cell_annot").value;
-
-  grp.push(annot);
 
   document.getElementById("pseudoSpin").style.visibility="visible";
 
   var D = {
   'method':'pseudo',
   'Dataset': window.store.getState().config.displayNames.dataset,
-  'cells':cells,
-  'genes':[],
-  'grp':grp,
   'annot':annot
   };
 
