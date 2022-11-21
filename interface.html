@@ -547,10 +547,10 @@
       <button class="tablinks" onclick="selFun(event, 'SANK')">Sankey Diagram</button>
       <button class="tablinks" onclick="selFun(event, 'STACBAR')">Stacked Barplot</button>
       <button class="tablinks" onclick="selFun(event, 'GD')">Gene Detected</button>
-      <button class="tablinks" onclick="selFun(event, 'CellPopView');getAllCells();detectOrganism()">Cell Population View</button>
+      <button class="tablinks" onclick="selFun(event, 'CellPopView');getAllCells()">Cell Population View</button>
       <button class="tablinks" onclick="selFun(event, 'Pseudo');getAllCells()">Pseudotime Inference</button>
       <button class="tablinks" onclick="selFun(event, 'HostParasite');getAllCells()">Host-Parasite Interactions</button>
-      <button class="tablinks" onclick="selFun(event, 'DEG');defaultTopSel('DEGtop','DEGtopBT1');detectOrganism()">DEG</button>
+      <button class="tablinks" onclick="selFun(event, 'DEG');defaultTopSel('DEGtop','DEGtopBT1')">DEG</button>
       <button id="preDEGpanelBT" class="tablinks" onclick="selFun(event, 'preDEGpanel');defaultTopSel('DEG','DEGlinksPlot')" style="display: none;">Pre-Computed DEG</button>
       <button class="tablinks" onclick="selFun(event, 'MARK')">Marker Genes</button>
       <button id="browserBT" class="tablinks" onclick="selFun(event, 'BROW')" style="display: none;">Multiome</button>
@@ -2359,6 +2359,9 @@ function init(){
             //Add Description
             addDescription();
 
+            //Parse YAML file
+            yamlPARSE();
+
             //get GSEA Information
             getGSEA();
 
@@ -3373,7 +3376,6 @@ function ADDGsetAdd(idx){//Geneset_Name Geneset_Genes
   window.biogen = geneNames;
   ADDGref();
   gsDB_dropdown()
-  detectOrganism();
 }
 function ADDGsetDel(grpName){
   delete window.bioGeneGrp[grpName];
@@ -5714,11 +5716,14 @@ $.ajax({
 
 var database_URL;
 var databaseSearch_URL;
+var isHP;
 
-function detectOrganism(){
+function yamlPARSE(){
 
-var D = {'method':'ymlPARSE',
-  'addr':'/'+window.store.getState().config.displayNames.dataset+'.yml'};
+  var D = 
+{'method':'ymlPARSE',
+"Dataset": window.store.getState().config.displayNames.dataset
+}
 
 $.ajax({
   type:"POST",
@@ -5889,7 +5894,6 @@ function add_DEG_GeneSet(){
   window.biogen = geneNames;
   ADDGref();
   gsDB_dropdown();
-  detectOrganism();
 }
 
 function geneset_to_database(){
