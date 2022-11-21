@@ -685,13 +685,19 @@
     <div id="HostParasite" class="tabcontent">
       <div id="hpInput">
         <h3>Run Host-Parasite Interaction analyses within VIP:</h3>
+        <p>Host-Parasite Percent Concent Violin Plots:
+        <button class="hpViol" onclick="hpAnalysis('hp_viol')"><b>Host-Parasite Violins</b></button>
+        <p id="hpViolins"></p>
+        </p>
         <p>Host-Parasite Cluster Comparision:
-        <button class="hpCC" onclick="hpClusterCompare()"><b>Run Comparision</b></button>
+        <button class="hpCC" onclick="hpAnalysis('hp_cc_host')"><b>Cluster by Host</b></button>
+        <button class="hpCC" onclick="hpAnalysis('hp_cc_para')"><b>Cluster by Parasite</b></button>
+        <button class="hpCC" onclick="hpAnalysis('hp_cc')"><b>Find Overlap</b></button>
       </div>
       <div id="hpSpin" class="loading style-2" style="visibility: hidden;"><div class="loading-wheel"></div></div>
-      <p id="hpNote" style="color:red;"></p>
-      <p id="hpFig"></p>
-      <p id="hpFig2"></p>
+      <p id="hpNote" style="color:blue;"></p>
+      <p id="hostFig"></p>
+      <p id="parasiteFig"></p>
     </div><!--HostParasite-->
 
     <div id="GD" class=tabcontent>
@@ -5669,11 +5675,17 @@ function pseudoPlot(){
 })
 }
 
-function hpClusterCompare(){
+function hpAnalysis(hp_option){
+
+if (isHP) {
+
+
 
 document.getElementById("hpSpin").style.visibility="visible";
 
-var D = {'method':'hp_cc'};
+var D = {'method':hp_option,
+          'h_prefix':hostPrefix,
+          'p_prefix':parasitePrefix};
 
 $.ajax({
   type:"POST",
@@ -5685,38 +5697,36 @@ $.ajax({
     document.getElementById("hpSpin").style.visibility="hidden";
 
     console.log(res);
-    console.log(typeof(res));
 
-    //$("#hpNote").text(res);
-    //showImg('hpFig',res);
+    if(hp_option!='hp_cc'){
 
     resD = JSON.parse(res);
 
-    console.log(resD[0])
-    console.log(resD[1])
-    console.log(resD[2])
-
-    //console.log(typeof(resD[0]))
-    //console.log(typeof(resD[1]))
-
-    //$("#hpNote").text("testing");
     $("#hpNote").text(resD[0]);
 
-    showImg('hpFig',resD[1]);
-    showImg('hpFig2',resD[2]);
+    showImg(resD[1],resD[2]);
 
-    console.log("end of ajax block reached");
+    }else{
+
+      $("#hpNote").text(res);
+
+    }
 
   },
   error: function() {
     console.log('error!');
   }
 })
+}else{
+  $("#hpNote").text("No Host-Parasite Data available.");
+}
 }
 
 var database_URL;
 var databaseSearch_URL;
 var isHP;
+var hostPrefix;
+var parasitePrefix
 
 function yamlPARSE(){
 
@@ -5735,6 +5745,11 @@ $.ajax({
     database_URL = res['url'];
 
     databaseSearch_URL = res['url2'];
+
+    isHP = res['isHP']
+
+    hostPrefix = res['host_prefix']
+    parasitePrefix = res['parasite_prefix']
 
   },
   error: function() {
