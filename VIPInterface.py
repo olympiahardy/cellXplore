@@ -1,12 +1,17 @@
 from ast import Index
+from calendar import c
+from importlib.util import source_hash
+from itertools import permutations, product
 from tkinter.tix import TList
+from turtle import st
+from types import CellType
 import requests
 import json
 import traceback
 import sqlite3
 # import server.app.decode_fbs as decode_fbs
 import scanpy as sc
-import squidpy as sq
+#import squidpy as sq
 import anndata as ad
 import pandas as pd
 import numpy as np
@@ -18,7 +23,9 @@ import seaborn as sns
 import matplotlib.patches as mpatches
 from matplotlib import rcParams
 import plotly.graph_objects as go
+import plotly
 import plotly.io as plotIO
+import plotly.express as px
 import base64
 import math
 from io import BytesIO
@@ -29,6 +36,8 @@ import re
 import glob
 import subprocess
 import gc #,psutil
+
+#os.environ['R_HOME'] = '/software/R-4.2.1/lib/R'
 
 strExePath = os.path.dirname(os.path.abspath(__file__))
 
@@ -293,12 +302,15 @@ def distributeTask(aTask):
     'testVIPready':testVIPready,
     'Description':getDesp,
     'GSEAgs':getGSEA,
-	'SPATIAL':SPATIAL,
+	  'SPATIAL':SPATIAL,
     'saveTest':saveTest,
     'getBWinfo':getBWinfo,
     'plotBW':plotBW,
     'CCI':cellCellInteraction,
-    'CCIplot':cellIntDotPlot
+    'CCIplot':cellIntDotPlot,
+    'cellIntHeatmap':cellIntHeatmap,
+    'cellChTabl':showCChatTable,
+    'CCIplotCC':cellChatDotPlot
   }.get(aTask,errorTask)
 
 def HELLO(data):
@@ -1514,115 +1526,216 @@ def plotBW(data):
 
     return img
 
-merged_cci_global = pd.DataFrame()
-
 def cellCellInteraction(data):
-  adata = createData(data)
-  Cluster_Key = data['ClusterKey']
+  scD = app.current_app.app_config.dataset_config.get_data_adaptor()
+  if True:
+    cci_table = scD.data.uns['CellPhoneDB_Interactions'].to_csv(index=False)
+    cci_table_json = json.dumps(cci_table)
+    ppr.pprint(cci_table)
+  return cci_table_json
 
-  Condition_Key = data['ConditionKey']
-  Condition = data['Cond']
-
-
-  adata_1 = adata[adata.obs[Condition_Key].isin([Condition])]
-  cci = sq.gr.ligrec(
-    adata_1,
-    n_perms=100,
-    cluster_key=Cluster_Key,
-    copy=True,
-    use_raw=False,
-    transmitter_params={"categories": "ligand"},
-    receiver_params={"categories": "receptor"},
-    interactions_params={'resources': 'CellPhoneDB'}
-)
-  cci_columns = list(cci["pvalues"].columns)
-  cci_plong = pd.melt(cci["pvalues"], value_vars = cci_columns, value_name = 'pval', ignore_index = False)
-  cci_plong = cci_plong.reset_index(level=['source', 'target'])
-  cci_columns = list(cci["means"].columns)
-  cci_means_long = pd.melt(cci["means"], value_vars = cci_columns, value_name = 'mean', ignore_index = False)
-  cci_means_long = cci_means_long.reset_index(level=['source', 'target'])
-
-  merged_cci = pd.merge(cci_plong, cci_means_long, how = "outer")
-  merged_cci = merged_cci.dropna()
-
-  merged_cci['Interacting_LR'] = merged_cci['source'] + '-' + merged_cci['target']
-  merged_cci['Interacting_Pair'] = merged_cci['cluster_1'] + '-' + merged_cci['cluster_2']
-
-#  merged_cci.rename(columns={'source': 'Source', 'target': 'Target', 'cluster_1': 'Cluster 1', 'cluster_2': 'Cluster_2', 'pval': 'Pvalues', 'mean': 'Mean'}, inplace=True)
-  global merged_cci_global
-  merged_cci_global = merged_cci_global.append(merged_cci)
-
-  merged_cci_table = merged_cci.to_csv(index=False)
-  merged_cci_table_json = json.dumps(merged_cci_table)
-
-  return merged_cci_table_json
-
-def cellTabP():
-  return merged_cci_global
 
 def cellIntDotPlot(data):
-  dataT = cellTabP()
-  cellPval = float(data['cellPval'])
-  Cluster_R = data['Cluster_Receiver']
-  Cluster_S = data['Cluster_Source']
-  cellpair = Cluster_S + '-' + Cluster_R
-  small = dataT[dataT['Interacting_Pair'] == cellpair]
-  small = small[small['pval'] < cellPval]
+  scD = app.current_app.app_config.dataset_config.get_data_adaptor()
+  if True:
+    cci_table = scD.data.uns['CellPhoneDB_Interactions']
+    cellPval = float(data['cellPval'])
+    Cluster_R = data['Cluster_Receiver']
+    Cluster_S = data['Cluster_Source']
+    Condition = data['Cond']
 
-  conditions = [
-    (small['pval'] > 0.05),
-    (small['pval'] > 0.01) & (small['pval'] <= 0.05),
-    (small['pval'] <= 0.01)]
+    cellpair = []
 
-  choices = [1,2,3]
+    for i in product(Cluster_S, Cluster_R):
+      comb = i[0] + '-' + i[1]
+      cellpair.append(comb)
 
-  small['Pseudop'] = np.select(conditions, choices, default = 'NA')
-  small['Pseudop'] = small['Pseudop'].astype(float)
+    ppr.pprint(cellpair)
+    small = cci_table[cci_table['Interacting_Pair'].isin(cellpair)]
+    small = small[small["Condition"] == Condition]
+    ppr.pprint(small)
+    small = small[small['pval'] < cellPval]
+
+    conditions = [
+       (small['pval'] > 0.05),
+       (small['pval'] > 0.01) & (small['pval'] <= 0.05),
+       (small['pval'] <= 0.01)]
+
+    choices = [1,2,3]
+
+    small['Pseudop'] = np.select(conditions, choices, default = 'NA')
+    small['Pseudop'] = small['Pseudop'].astype(float)
 
 
-  hover_text = []
-  bubble_size = []
+    hover_text = []
+    bubble_size = []
 
-  for index, row in small.iterrows():
-      hover_text.append(('Interacting Pair: {Interacting_Pair}<br>' +
-                      'Interacting LR: {Interacting_LR}<br>' +
-                      'P-value: {pvalues}<br>' +
-                      'Mean Expression: {mean}').format(Interacting_Pair = row['Interacting_Pair'],
+    for index, row in small.iterrows():
+         hover_text.append(('Interacting Pair: {Interacting_Pair}<br>' +
+                         'Interacting LR: {Interacting_LR}<br>' +
+                         'P-value: {pvalues}<br>' +
+                         'Mean Expression: {mean}').format(Interacting_Pair = row['Interacting_Pair'],
                                                        Interacting_LR = row['Interacting_LR'],
                                                        pvalues = row['pval'],
                                                        mean = row['mean']))
-      bubble_size.append(row['Pseudop'])
+         bubble_size.append(row['Pseudop'])
     
-  small['text'] = hover_text
-  small['size'] = bubble_size
-  bubble_size = np.array(bubble_size)
+    small['text'] = hover_text
+    small['size'] = bubble_size
+    bubble_size = np.array(bubble_size)
 
-  sizeref = bubble_size.max()/10 ** 2
+    sizeref = bubble_size.max()/10 ** 2
 
-  fig = go.Figure()
+    fig = go.Figure()
 
-  fig.add_trace(go.Scatter(
-    x=small['Interacting_Pair'], y=small['Interacting_LR'],
-    text = small['text'],
-    marker_size = bubble_size,))
+    fig.add_trace(go.Scatter(
+       x=small['Interacting_Pair'], y=small['Interacting_LR'],
+       text = small['text'],
+       marker_size = bubble_size,))
 
-  fig.update_traces(mode = 'markers', marker=dict(sizemode='area',
+    fig.update_traces(mode = 'markers', marker=dict(sizemode='area',
                                                sizeref = sizeref, 
                                                color=small['mean'],
                                                 sizemin = 1, showscale=True,
                                                
-  colorbar_title = 'Mean Expression'))
-  fig.update_xaxes(tickangle=45)
+     colorbar_title = 'Mean Expression'))
+    fig.update_xaxes(tickangle=45)
 
-  fig.update_layout(
-    title = 'Cell-Cell Interactions', title_x = 0.5,
-    xaxis = dict(
-    title = 'Interacting Cell Types',),
-    yaxis = dict(
-    title = 'Ligand-Receptor Pairs'),)
+    fig.update_layout(
+       title = 'Cell-Cell Interactions', title_x = 0.5,
+       xaxis = dict(
+       title = 'Interacting Cell Types',),
+       yaxis = dict(
+       title = 'Ligand-Receptor Pairs'),
+       height = 800)
 
-  div = plotIO.to_html(fig)
-  return div
+    div = plotIO.to_html(fig)
+    return div
+
+def cellIntHeatmap(data):
+  scD = app.current_app.app_config.dataset_config.get_data_adaptor()
+  if True:
+    Cluster_R = data['Cluster_Receiver']
+    Cluster_S = data['Cluster_Source']
+    
+    Condition = data['Cond']
+    #measure = 'count'
+    #Tissue = 'Lung'
+    interactions = scD.data.uns['Cellchat_Interactions']
+    freq1 = pd.crosstab(index=interactions['source'], columns=interactions['target'])
+
+    interactions = interactions[interactions["Condition"] == Condition]
+    freq2 = pd.crosstab(index=interactions['source'], columns=interactions['target'])
+    
+    freq1_column = freq1.columns
+    freq2_column = freq2.columns
+
+    freq_column_common = freq1_column.difference(freq2_column)
+
+    for i in freq_column_common:
+      freq2.insert(len(freq2.columns), i, 0)
+
+    heatmap_df = freq2.loc[Cluster_S, Cluster_R]
+
+    val = {'z': heatmap_df.values.tolist(),
+            'x': heatmap_df.columns.tolist(),
+            'y': heatmap_df.index.tolist()}
+
+    fig = go.Figure(data=go.Heatmap(val,
+                                colorscale=plotly.colors.sequential.Reds))
+
+    div = plotIO.to_html(fig)
+
+    return div
+
+def showCChatTable(data):
+   scD = app.current_app.app_config.dataset_config.get_data_adaptor()
+   if True:
+    cci_table = scD.data.uns['Cellchat_Interactions'].to_csv(index=False)
+    cci_table_json = json.dumps(cci_table)
+
+   return cci_table_json
+
+def cellChatDotPlot(data):
+
+  scD = app.current_app.app_config.dataset_config.get_data_adaptor()
+  if True:
+    cci_table = scD.data.uns['Cellchat_Interactions']
+    cellPval = float(data['cellPval'])
+    Cluster_R = data['Cluster_Receiver1']
+    Cluster_S = data['Cluster_Source2']
+    Condition = data['Cond']
+
+    cellpair = []
+
+    for i in product(Cluster_S, Cluster_R):
+      comb = i[0] + '-' + i[1]
+      cellpair.append(comb)
+
+    ppr.pprint(cellpair)
+    ppr.pprint(cci_table['Interacting_Pair'])
+    small = cci_table[cci_table['Interacting_Pair'].isin(cellpair)]
+    ppr.pprint(small)
+    small = small[small["Condition"] == Condition]
+    ppr.pprint(small)
+    small = small[small['pval'] < cellPval]
+
+    conditions = [
+       (small['pval'] > 0.05),
+       (small['pval'] > 0.01) & (small['pval'] <= 0.05),
+       (small['pval'] <= 0.01)]
+
+    choices = [1,2,3]
+
+    small['Pseudop'] = np.select(conditions, choices, default = 'NA')
+    small['Pseudop'] = small['Pseudop'].astype(float)
+
+
+    hover_text = []
+    bubble_size = []
+
+    for index, row in small.iterrows():
+         hover_text.append(('Interacting Pair: {Interacting_Pair}<br>' +
+                         'Interacting LR: {Interacting_LR}<br>' +
+                         'P-value: {pvalues}<br>' +
+                         'Communication Probability: {probability}').format(Interacting_Pair = row['Interacting_Pair'],
+                                                       Interacting_LR = row['interaction_name_2'],
+                                                       pvalues = row['pval'],
+                                                       probability = row['prob']))
+         bubble_size.append(row['Pseudop'])
+    
+    small['text'] = hover_text
+    small['size'] = bubble_size
+    bubble_size = np.array(bubble_size)
+
+    sizeref = bubble_size.max()/10 ** 2
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+       x=small['Interacting_Pair'], y=small['interaction_name_2'],
+       text = small['text'],
+       marker_size = bubble_size,))
+
+    fig.update_traces(mode = 'markers', marker=dict(sizemode='area',
+                                               sizeref = sizeref, 
+                                               color=small['prob'],
+                                                sizemin = 1, showscale=True,
+                                               
+     colorbar_title = 'Communication Probability'))
+    fig.update_xaxes(tickangle=45)
+
+    fig.update_layout(
+       title = 'Cell-Cell Interactions', title_x = 0.5,
+       xaxis = dict(
+       title = 'Interacting Cell Types',),
+       yaxis = dict(
+       title = 'Ligand-Receptor Pairs'),
+       height = 800)
+
+    div = plotIO.to_html(fig)
+    return div
+
 
 #make sure the h5ad file full name is listed in vip.env as a variable 'testVIP';
 def testVIPready(data):
