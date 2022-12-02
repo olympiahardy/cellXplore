@@ -1,3 +1,4 @@
+
 from ast import Index
 from calendar import c
 from importlib.util import source_hash
@@ -5,6 +6,9 @@ from itertools import permutations, product
 from tkinter.tix import TList
 from turtle import st
 from types import CellType
+
+from turtle import color
+
 import requests
 import json
 import traceback
@@ -26,6 +30,11 @@ import plotly.graph_objects as go
 import plotly
 import plotly.io as plotIO
 import plotly.express as px
+
+
+import yaml
+from yaml.loader import SafeLoader
+
 import base64
 import math
 from io import BytesIO
@@ -35,9 +44,11 @@ import os
 import re
 import glob
 import subprocess
+
 import gc #,psutil
 
 #os.environ['R_HOME'] = '/software/R-4.2.1/lib/R'
+
 
 strExePath = os.path.dirname(os.path.abspath(__file__))
 
@@ -133,8 +144,9 @@ def getObs(data):
         tmp = labels.loc[list(scD.data.obs.loc[selC,data['obs_index']]),sel]
         tmp.index = cNames
         anno += [tmp]
-  obs = pd.concat(anno,axis=1)
-  #ppr.pprint(obs)
+
+    obs = pd.concat(anno,axis=1)
+
   ## update the annotation Abbreviation
   combUpdate = cleanAbbr(data)
   if 'abb' in data.keys():
@@ -193,6 +205,7 @@ def createData(data):
   fSparse = False
   X = []
   if 'genes' in data.keys():
+
     scD = app.current_app.app_config.dataset_config.get_data_adaptor()
     if not type(scD.data.X) is np.ndarray:
         fSparse = True
@@ -204,6 +217,7 @@ def createData(data):
     else:
         X = scD.data.X
         gNames = list(scD.data.var[data['var_index']])
+        #ppr.pprint("loop 3 ...")
     if 'figOpt' in data.keys() and data['figOpt']['scale'] == 'Yes':
       X = sc.pp.scale(X,zero_center=(data['figOpt']['scaleZero'] == 'Yes'),max_value=(float(data['figOpt']['scaleMax']) if data['figOpt']['clipValue']=='Yes' else None))
     X = X[selC]
@@ -227,6 +241,7 @@ def createData(data):
   #ppr.pprint("finished layout ...")
   ## obtain the category annotation
   combUpdate, obs = getObs(data)
+  #ppr.pprint("starting obv ...")
 
   ## create a custom annotation category and remove cells which are not in the selected annotation
   if combUpdate and len(data['grp'])>1:
@@ -306,11 +321,18 @@ def distributeTask(aTask):
     'saveTest':saveTest,
     'getBWinfo':getBWinfo,
     'plotBW':plotBW,
+
     'CCI':cellCellInteraction,
     'CCIplot':cellIntDotPlot,
     'cellIntHeatmap':cellIntHeatmap,
     'cellChTabl':showCChatTable,
     'CCIplotCC':cellChatDotPlot
+
+    'CPV':cellpopview,
+    'CPVTable':cpvtable,
+    'ymlPARSE':parseYAML,
+    'pseudo':pseudoPlot
+
   }.get(aTask,errorTask)
 
 def HELLO(data):
@@ -319,6 +341,7 @@ def HELLO(data):
 def iostreamFig(fig):
   #getLock(iosLock)
   figD = BytesIO()
+  #fig.savefig("test.png")
   #ppr.pprint('io located at %d'%int(str(figD).split(" ")[3].replace(">",""),0))
   fig.savefig(figD,bbox_inches='tight')
   #ppr.pprint(sys.getsizeof(figD))
@@ -1764,3 +1787,176 @@ def saveTest(data):
         with open(strPath+re.sub("h5ad$","img.txt",strH5ad),'w') as f:
             f.write(data['img'])
     return 'success'
+
+
+def cellpopview(data):
+    
+    adata = createData(data)
+
+    # Subset Data by cluster.
+    cluster_key = data['ClusterKey']
+    
+    cluster = data['Cluster']
+    
+    adata = adata[adata.obs[cluster_key].isin([cluster])]
+
+    # Split by Condition.
+    condition_key = data['ConditionKey']
+    
+    condition_1 = data['Cond1']
+    
+    condition_2 = data['Cond2']
+    
+    adata_1 = adata[adata.obs[condition_key].isin([condition_1])]
+    adata_2 = adata[adata.obs[condition_key].isin([condition_2])]
+    
+    # Extract the data.
+    table_1 = adata_1.to_df()
+  
+    table_2 = adata_2.to_df()
+   
+    # Transpose the data for subsequent log normalization.
+    table_1 = table_1.transpose() 
+    expression_1 = np.log1p(np.expm1(table_1).mean(axis=1)) 
+
+    table_2 = table_2.transpose()
+    expression_2 = np.log1p(np.expm1(table_2).mean(axis=1)) 
+
+    # Generate Pandas Dataframe of Graph Information.
+
+    gene_names = expression_1.index
+
+    gene_metaData = data['gMD']
+
+    gInfo = getVar(data)
+  
+    gInfo = gInfo[gene_metaData]
+
+    annot = []
+
+    for x in gInfo:
+      annot.append(x)
+
+    data = {"Gene_Name":gene_names,condition_1:expression_1,condition_2:expression_2,gene_metaData:annot}
+
+    plot_dataframe = pd.DataFrame(data)
+
+    # Interactive Graph Plotting.
+
+    plot_title = condition_1 + " vs. " + condition_2
+
+    hd = {'Gene_Name':False,condition_1:False,condition_2:False,gene_metaData:True}
+
+    cellpop_plot = px.scatter(plot_dataframe, x=condition_1, y=condition_2, hover_data=hd, hover_name="Gene_Name", title=plot_title)
+
+    div = plotIO.to_html(cellpop_plot)
+    
+    return div
+
+def cpvtable(data):
+
+  adata = createData(data)
+
+  # Subset data by cluster.
+  cluster_key = data['ClusterKey']
+    
+  cluster = data['Cluster']
+    
+  adata = adata[adata.obs[cluster_key].isin([cluster])]
+  
+  # Remove extraneous conditions.
+  
+  condition_key = data['ConditionKey']
+    
+  condition_1 = data['Cond1']
+    
+  condition_2 = data['Cond2']
+    
+  adata = adata[adata.obs[condition_key].isin([condition_1,condition_2])]
+
+  # Run Differential Expression Analysis.
+  
+  res = de.test.t_test(adata,grouping=condition_key, is_logged=True)
+  
+  deg = res.summary()
+  deg = deg.sort_values(by=['qval']).loc[:,['gene','log2fc','pval','qval']]
+  deg['log2fc'] = -1 * deg['log2fc']
+
+  # Extract user-specified gene metadata column, reduce to relevant column.
+
+  gInfo = getVar(data)
+  
+  metadata = data['gMD']
+
+  gInfo = gInfo[metadata]
+
+  # Process and Export DE Results
+
+  deg.index = deg['gene']
+  
+  deg = pd.concat([deg,gInfo],axis=1,sort=False)
+
+  deg = deg.iloc[range(200),]
+
+  deg = deg.to_csv(index=False)
+  
+  return json.dumps(deg)
+
+
+def parseYAML(data):
+
+  ymlAddress = data['addr']
+
+  cwd = "/share/cellxgene/demo/YAML"
+
+  finalAddr = cwd + ymlAddress
+
+  with open(finalAddr) as f:
+    data = yaml.load(f, Loader=SafeLoader)
+  
+  return data
+
+def pseudoPlot(data):
+  
+  # Read YAML File
+
+  yml = parseYAML(data)
+
+  # Pseudotime Data Check
+
+  if 'includePseudo' not in yml.keys():
+    return("ERROR - No Pseudotime Data available.")
+
+  # Extract Embedding Key
+
+  embed = yml['pseudoEmbed']
+
+  # Create AnnData Object
+
+  data['layout'] = embed
+
+  aData = createData(data)
+
+  # Plot Graph
+  
+  annot = data['annot']
+
+  if "pseudo" in annot:
+    aData.obs[annot] = aData.obs[annot].astype(float)
+    sc.pl.embedding(aData,"X_phate",color=annot,return_fig=True,color_map="Purples")
+  else:
+    sc.pl.embedding(aData,"X_phate",color=annot,return_fig=True)
+
+
+  # Extract and Plot Pseudotime Lineages
+
+  for x in yml.keys():
+    if x.split('_')[0] == 'Lineage':
+        line = yml[x]
+        dim1 = line['dim1']
+        dim2 = line['dim2']
+        plt.plot(dim1,dim2, color="black")
+
+  pseudoPlot = plt.gcf()
+
+  return iostreamFig(pseudoPlot)
