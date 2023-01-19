@@ -65,7 +65,7 @@ def freeLock(lock):
 def route(data,appConfig):
   #ppr.pprint("current working dir:%s"%os.getcwd())
   data = initialization(data,appConfig)
-  #ppr.pprint(data)
+  ppr.pprint(data)
   try:
     getLock(jobLock)
     taskRes = distributeTask(data["method"])(data)
@@ -306,10 +306,11 @@ def distributeTask(aTask):
     'saveTest':saveTest,
     'getBWinfo':getBWinfo,
     'plotBW':plotBW,
-    'CCI':cellCellInteraction,
+    'CPDBTabl':showCPDBhatTable,
+    'CPDBheatmap':cellIntSingleHeatmapCPDB,
     'CCIplot':cellIntDotPlot,
     'cellIntHeatmap':cellIntHeatmap,
-    'cellChTabl':showCChatTable,
+    'cellChatInteractionTable':showCChatTable,
     'CCIplotCC':cellChatDotPlot
   }.get(aTask,errorTask)
 
@@ -1529,6 +1530,7 @@ def plotBW(data):
 def cellCellInteraction(data):
   scD = app.current_app.app_config.dataset_config.get_data_adaptor()
   if True:
+    ppr.pprint("work")
     cci_table = scD.data.uns['CellPhoneDB_Interactions'].to_csv(index=False)
     cci_table_json = json.dumps(cci_table)
     ppr.pprint(cci_table)
@@ -1648,11 +1650,25 @@ def cellIntHeatmap(data):
 
     return div
 
+def showCPDBhatTable(data):
+   scD = app.current_app.app_config.dataset_config.get_data_adaptor()
+   if True:
+    cci_table = scD.data.uns['CellPhoneDB_Interactions'].to_csv(index=False)
+    cci_table_json = json.dumps(cci_table)
+
+   return cci_table_json
+
 def showCChatTable(data):
    scD = app.current_app.app_config.dataset_config.get_data_adaptor()
    if True:
-    cci_table = scD.data.uns['Cellchat_Interactions'].to_csv(index=False)
-    cci_table_json = json.dumps(cci_table)
+    cci_table = scD.data.uns['Cellchat_Interactions']
+    ppr.pprint(cci_table)
+    condition = data['Condition']
+    ppr.pprint(condition)
+    cci_table_subset = cci_table[cci_table['Condition'] == condition]
+    cci_table_subset = cci_table_subset.to_csv(index=False)
+    cci_table_json = json.dumps(cci_table_subset)
+    ppr.pprint(cci_table_json)
 
    return cci_table_json
 
@@ -1736,6 +1752,127 @@ def cellChatDotPlot(data):
     div = plotIO.to_html(fig)
     return div
 
+def cellIntSingleHeatmapCPDB(data):
+
+  scD = app.current_app.app_config.dataset_config.get_data_adaptor()
+  if True:
+
+    cci_table = scD.data.uns['CellPhoneDB_Interactions']
+    cellPval = float(data['cellPval'])
+    Cluster_R = data['Cluster_Receiver']
+    Cluster_S = data['Cluster_Source']
+    Condition = data['Cond']
+    celltypes = scD.data.obs['Cell_Subclusters'].unique()
+    ppr.pprint(celltypes)
+    heatCol = data['colour']
+
+    cci_table = cci_table[cci_table["Condition"] == Condition]
+    
+    cci_table_freq = pd.crosstab(index=cci_table['cluster_1'], columns=cci_table['cluster_2'])
+    
+    cci_table_freq_rows = cci_table.index.tolist()
+    
+    not_in_test_rows = list(set(celltypes) - set(cci_table_freq_rows))
+
+    for i in not_in_test_rows:
+        cci_table_freq = cci_table_freq.append(pd.Series(0, index=cci_table_freq.columns), ignore_index=True)
+
+    cci_table_freq_column = cci_table_freq.columns.tolist()
+
+    not_in_test_columns = list(set(celltypes) - set(cci_table_freq_column))
+
+    for i in not_in_test_columns:
+        healthy_freq.insert(len(cci_table_freq.columns), i, 0)
+
+    cci_table_freq.index = celltypes
+    cci_table_freq_1 = healthy_freq.loc[Cluster_S, Cluster_R]
+
+    def df_to_plotly(df):
+        return {'z': df.values.tolist(),
+                'x': df.columns.tolist(),
+                'y': df.index.tolist()}
+
+    fig = go.Figure(data=go.Heatmap(df_to_plotly(cci_table_freq_1),
+                                    colorscale=plotly.colors.sequential.heatCol))
+
+    fig.update_layout(
+        title="Difference in Number of Interactions",
+        xaxis_title="Reciever Cells",
+        yaxis_title="Sender Cells")
+
+    div = plotIO.to_html(fig)
+    
+    return fig
+
+def cellIntDifferentialHeatmap(data):
+
+  scD = app.current_app.app_config.dataset_config.get_data_adaptor()
+  if True:
+
+    cci_table = scD.data.uns['CellPhoneDB_Interactions']
+    cellPval = float(data['cellPval'])
+    Cluster_R = data['Cluster_Receiver']
+    Cluster_S = data['Cluster_Source']
+    Condition_A = data['CondA']
+    Condition_B = data['CondB']
+    celltypes = data['Cluster_Key']
+    heatCol=data['color']
+
+    disease = cci_table[cci_table["Condition"] == Condition_A]
+    healthy = cci_table[cci_table["Condition"] == Condition_B]
+    
+    disease_freq = pd.crosstab(index=disease['cluster_1'], columns=disease['cluster_2'])
+    healthy_freq = pd.crosstab(index=healthy['cluster_1'], columns=healthy['cluster_2'])
+
+    disease_freq_rows = disease_freq.index.tolist()
+    healthy_freq_rows = healthy_freq.index.tolist()
+    
+    not_in_test_rows_h = list(set(celltypes) - set(healthy_freq_rows))
+
+    not_in_test_rows_d = list(set(celltypes) - set(disease_freq_rows))
+
+    for i in not_in_test_rows_d:
+        disease_freq = disease_freq.append(pd.Series(0, index=disease_freq.columns), ignore_index=True)
+
+    for i in not_in_test_rows_h:
+        healthy_freq = healthy_freq.append(pd.Series(0, index=healthy_freq.columns), ignore_index=True)
+
+    disease_freq_column = disease_freq.columns.tolist()
+    healthy_freq_column = healthy_freq.columns.tolist()
+
+    not_in_test_columns_h = list(set(celltypes) - set(healthy_freq_column))
+
+    for i in not_in_test_columns_h:
+        healthy_freq.insert(len(healthy_freq.columns), i, 0)
+
+    not_in_test_columns_d = list(set(celltypes) - set(disease_freq_column))
+
+    for i in train_not_in_test_columns_d:
+       disease_freq.insert(len(disease_freq.columns), i, 0)
+
+
+    healthy_freq.index = celltypes
+    disease_freq.index = celltypes
+    healthy_freq_1 = healthy_freq.loc[source, target]
+    disease_freq_1 = disease_freq.loc[source, target]
+    diff_freq = disease_freq_1.subtract(healthy_freq_1)
+
+    def df_to_plotly(df):
+        return {'z': df.values.tolist(),
+                'x': df.columns.tolist(),
+                'y': df.index.tolist()}
+
+    fig = go.Figure(data=go.Heatmap(df_to_plotly(diff_freq),
+                                    colorscale=plotly.colors.sequential.heatCol, zmid=0))
+
+    fig.update_layout(
+        title="Difference in Number of Interactions",
+        xaxis_title="Reciever Cells",
+        yaxis_title="Sender Cells")
+
+    div = plotIO.to_html(fig)
+    
+    return fig
 
 #make sure the h5ad file full name is listed in vip.env as a variable 'testVIP';
 def testVIPready(data):
