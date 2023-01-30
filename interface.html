@@ -550,7 +550,7 @@
       <button class="tablinks" onclick="selFun(event, 'DEG');defaultTopSel('DEGtop','DEGtopBT1')">DEG</button>
       <button id="preDEGpanelBT" class="tablinks" onclick="selFun(event, 'preDEGpanel');defaultTopSel('DEG','DEGlinksPlot')" style="display: none;">Pre-Computed DEG</button>
       <button class="tablinks" onclick="selFun(event, 'MARK')">Marker Genes</button>
-      <button class="tablinks" onclick="selFun(event, 'cellCellInteraction');getAllCells()">CellPhoneDB Interaction Analysis</button>
+      <button class="tablinks" onclick="selFun(event, 'CPDB')">CellPhoneDB Interaction Analysis</button>
       <button class="tablinks" onclick="selFun(event, 'CELLCHAT')">Cell Chat Interaction Analysis</button>
       <button id="browserBT" class="tablinks" onclick="selFun(event, 'BROW')" style="display: none;">Multiome</button>
       <button class="tablinks" onclick="selFun(event, 'SPATIAL');defaultTopSel('SPATIAL','SPATIALimage')">Spatial Transcriptomics</button>
@@ -631,90 +631,59 @@
 
     </div><!--ADDG-->
 
-    <div id="cellCellInteraction" class="tabcontent">
-      <div class="topTab">
-        <button id="SingleCCI" class="CCIlinks" onclick="selTop(event, 'SingleCellInt','cellCellInteraction')">Single Condition</button>
-        <button id="MultiCCI" class="CCIlinks" onclick="selTop(event, 'MultiCellInt','cellCellInteraction')">Multi Condition</button>
-      </div>
-      <div id="SingleCellInt" class="cellCellInteraction"></div>
-        <h3>Begin exploration of your CellPhoneDB cell-cell interaction analysis:</h3>
-        <div id="CPDBTabl">
-          <h4>View table of predicted cell-cell interactions:</h4>
-          <h6>Tip: Filter down results using p-value and mean expression cut-off thresholds or search for a ligand of interest in the search bar.</h6>
-          <p id="CCInote3" style="color:red;"></p>
-          <button class="CCIRUNbt" onclick="showCPDBhatTable()"><b>Show Table</b></button>
-          <table id="CCIdtable" class="display"></table>
-        </div>
-        
-      <div id="cellPopCCI">
-        <p>Start by defining your cell population(s) of interest. This can be done by using the lasso selection tool or by clicking the checkboxes below:</p>
-        <h5>Select cell populations from lasso selection</h5>
-        <p>Choose cell selection(s):
-          <label><input class="CCIcell" type="checkbox" value="celllist1" checked />Selection 1 (<span class="cellN1"style="color:red">0</span>)</label>
-          <label><input class="CCIcell" type="checkbox" value="celllist2" checked />Selection 2 (<span class="cellN2"style="color:red">0</span>)</label> 
-        </p>
-        <h4>OR</h4>
-        <h3>Choose cell populations from the checkboxes below:</h3>  
+    <div id="CPDB" class="tabcontent">
+      <div id="CPDBInteractionTable">
+        <h3> Table view of interaction:</h3>
         <p>Select Condition Annotation:
-        <select id="CCI_ConditionKey_CPDB" onclick="CellIntList('condition')"></select></p>
-        <p>Select your condition of interest:
-        <select id="CCI_CPDB"></select></p>
-        <p id="CCInote1" style="color:red;"></p>
-        <p id="CCInotesuccess" style="color:black;"></p>
-        <div id="CCIspin" class="loading style-2" style="visibility: hidden;"><div class="loading-wheel"></div></div>
-      </div>
-      <div id="heatCPDB">
-        <h3>Plot results:</h3>
-        <p>Choose source cell population(s):<input type="checkbox" checked onclick="$('.CELLtypes').prop('checked', this.checked);">Uncheck / Check All</p>
-        <p id="CELLtype_CPDBheatS"></p> 
-        <p>Choose receiver cell population(s): <input type="checkbox" checked onclick="$('.CELLtypes2').prop('checked', this.checked);">Uncheck / Check All</p>
-        <p id="CELLtype_CPDBheatR"></p>
-        <p>Select p-value threshold:<input id="cellPvalCPDB_HEAT" type="float" step="0.01" value="0.05" /></p>
-        <p>Color:
-          <select id="CPDB_HEATcolour">
-            <option value='Purples'>Purples</option>
-            <option value='Blues'>Blues</option>
-            <option value='Greens'>Greens</option>
-            <option value='Oranges'>Oranges</option>
-            <option value='Reds' selected>Reds</option>
-            <option value='YlOrBr'>YlOrBr</option>
-            <option value='YlOrRd'>YlOrRd</option>
-            <option value='OrRd'>OrRd</option>
-            <option value='PuRd'>PuRd</option>
-            <option value='RdPu'>RdPu</option>
-            <option value='BuPu'>BuPu</option>
-            <option value='PuBu'>PuBu</option>
-            <option value='PuBuGn'>PuBuGn</option>
-            <option value='BuGn'>BuGn</option>
-            <option value='GnBu'>GnBu</option>
-            <option value='YlGnBu'>YlGnBu</option>
-            <option value='YlGn'>YlGn</option>
-            <option value='Spectral'>Spectral</option>
-            <option value='PiYG'>PiYG</option>
-            <option value='PRGn'>PRGn</option>
-            <option value='BrBG'>BrBG</option>
-            <option value='PuOr'>PuOr</option>
-            <option value='RdGy'>RdGy</option>
-            <option value='RdBu'>RdBu</option>
-            <option value='RdYlBu'>RdYlBu</option>
-            <option value='RdYlGn'>RdYlGn</option>
-          </select></p>
-        <button class="CPDB_HEAT_bt" onclick="CPDBheatmap()"><b>Plot</b></button>
-        </div>
-        <div id="CCIplot">
-            <h3>Plot results:</h3>
-            <p>Choose source cell population(s):<input type="checkbox" checked onclick="$('.CELLtypes').prop('checked', this.checked);">Uncheck / Check All</p>
-            <p id="CELLtype3"></p> 
-            <p>Choose receiver cell population(s): <input type="checkbox" checked onclick="$('.CELLtypes2').prop('checked', this.checked);">Uncheck / Check All</p>
-            <p id="CELLtype4"></p>
-            <p>Select p-value threshold:<input id="cellPval" type="float" step="0.01" value="0.05" /></p>
-            <button class="CCIPLOTbt" onclick="cellIntDotPlot()"><b>Plot</b></button>
+        <select id="CCI_ConditionKey" onclick="CellIntList('CCI_ConditionKey', ['CCI_Condition'])"></select></p>
+        <p>Select Condition:
+        <select id="CCI_Condition"></select></p>
+        <button class="CPDBTablebt" onclick="CPDBInteractionTable()"><b>Show Table</b></button>
+        <p id="CCInote1" style="color:red"></p>
+        <p id="CCInotesuccess", style="color:black;"></p>
+        <p id="CCIfig"></p>
+        <div id = 'CCIspin' class="loading style-2" style="visibility: hidden;"></div class='loading-wheel'></div>
+        <table id="CPDBTable" class="display"></table>
+        <div id="CPDBHeatmap">
+          <h3>Plot heatmap of results:</h3>
+          <p>Choose source cell population(s):<input type="checkbox" checked onclick="$('.CELLtypes').prop('checked', this.checked);">Uncheck / Check All</p>
+          <p id="CellChatSender"></p> 
+          <p>Choose receiver cell population(s): <input type="checkbox" checked onclick="$('.CELLtypes2').prop('checked', this.checked);">Uncheck / Check All</p>
+          <p id="CellChatReceiver"></p>
+          <p>Color:
+            <select id="CPDBHeatmapColour">
+              <option value='Purples'>Purples</option>
+              <option value='Blues'>Blues</option>
+              <option value='Greens'>Greens</option>
+              <option value='Oranges'>Oranges</option>
+              <option value='Reds' selected>Reds</option>
+              <option value='YlOrBr'>YlOrBr</option>
+              <option value='YlOrRd'>YlOrRd</option>
+              <option value='OrRd'>OrRd</option>
+              <option value='PuRd'>PuRd</option>
+              <option value='RdPu'>RdPu</option>
+              <option value='BuPu'>BuPu</option>
+              <option value='PuBu'>PuBu</option>
+              <option value='PuBuGn'>PuBuGn</option>
+              <option value='BuGn'>BuGn</option>
+              <option value='GnBu'>GnBu</option>
+              <option value='YlGnBu'>YlGnBu</option>
+              <option value='YlGn'>YlGn</option>
+              <option value='Spectral'>Spectral</option>
+              <option value='PiYG'>PiYG</option>
+              <option value='PRGn'>PRGn</option>
+              <option value='BrBG'>BrBG</option>
+              <option value='PuOr'>PuOr</option>
+              <option value='RdGy'>RdGy</option>
+              <option value='RdBu'>RdBu</option>
+              <option value='RdYlBu'>RdYlBu</option>
+              <option value='RdYlGn'>RdYlGn</option>
+            </select></p>
+          <button class="CPDBHeatmapbt" onclick="CPDBHeatmap()"><b>Plot</b></button>
           </div>
-        
-        <p id="CCInote2" style="color:red;"></p>
-        <div id="CCIspin2" class="loading style-2" style="visibility: hidden;"><div class="loading-wheel"></div></div>
-        <div id="CCIresize" style="height: 'auto'; width: 'auto'; padding: 0.5em;"></div>
-    </div><!--cellCellInteraction-->
+          <div id="CPDBHeatmapFig">
+     
+      </div><!--CPDB-->
 
     <div id="CELLCHAT" class="tabcontent">
       <div id="cellChatInteractionTable">
@@ -729,6 +698,44 @@
         <p id="CCIfig"></p>
         <div id = 'CCIspin' class="loading style-2" style="visibility: hidden;"></div class='loading-wheel'></div>
         <table id="CellChatTable" class="display"></table>
+        <div id="cellChatHeatmap">
+          <h3>Plot heatmap of results:</h3>
+          <p>Choose source cell population(s):<input type="checkbox" checked onclick="$('.CELLtypes').prop('checked', this.checked);">Uncheck / Check All</p>
+          <p id="CellChatSender"></p> 
+          <p>Choose receiver cell population(s): <input type="checkbox" checked onclick="$('.CELLtypes2').prop('checked', this.checked);">Uncheck / Check All</p>
+          <p id="CellChatReceiver"></p>
+          <p>Color:
+            <select id="cellChatHeatmapColour">
+              <option value='Purples'>Purples</option>
+              <option value='Blues'>Blues</option>
+              <option value='Greens'>Greens</option>
+              <option value='Oranges'>Oranges</option>
+              <option value='Reds' selected>Reds</option>
+              <option value='YlOrBr'>YlOrBr</option>
+              <option value='YlOrRd'>YlOrRd</option>
+              <option value='OrRd'>OrRd</option>
+              <option value='PuRd'>PuRd</option>
+              <option value='RdPu'>RdPu</option>
+              <option value='BuPu'>BuPu</option>
+              <option value='PuBu'>PuBu</option>
+              <option value='PuBuGn'>PuBuGn</option>
+              <option value='BuGn'>BuGn</option>
+              <option value='GnBu'>GnBu</option>
+              <option value='YlGnBu'>YlGnBu</option>
+              <option value='YlGn'>YlGn</option>
+              <option value='Spectral'>Spectral</option>
+              <option value='PiYG'>PiYG</option>
+              <option value='PRGn'>PRGn</option>
+              <option value='BrBG'>BrBG</option>
+              <option value='PuOr'>PuOr</option>
+              <option value='RdGy'>RdGy</option>
+              <option value='RdBu'>RdBu</option>
+              <option value='RdYlBu'>RdYlBu</option>
+              <option value='RdYlGn'>RdYlGn</option>
+            </select></p>
+          <button class="cellChatHeatmapbt" onclick="cellChatHeatmap()"><b>Plot</b></button>
+          </div>
+          <div id="cellChatHeatmapFig">
     </div><!--CELLCHAT-->
 
     <div id="GD" class="tabcontent">
@@ -2292,19 +2299,17 @@ function init(){
     //Categorical metadata
     htmlCheck= "";
     var names = window.store.getState().annoMatrix.schema.annotations.obsByName.Cell_Subclusters.categories;
-    console.log(names)
     for(const one of names) {
-      htmlCheck += '<label id="eIDtypesCK'+one+'"><input class="CELLtypes" type="checkbox" value="'+one+'"/> '+one+'</label>';
+      htmlCheck += '<label id="eIDtypesCK'+one+'"><input class="CellChatSender" type="checkbox" value="'+one+'"/> '+one+'</label>';
     }
-    $('#CELLtype').html(htmlCheck.replace(/eID/g,'cellIntHeatmap'));
+    $('#CellChatSender').html(htmlCheck.replace(/eID/g,'cellChatHeatmap'));
 
     htmlCheck= "";
     var names = window.store.getState().annoMatrix.schema.annotations.obsByName.Cell_Subclusters.categories;
-    console.log(names)
     for(const one of names) {
-      htmlCheck += '<label id="eIDtypesCK'+one+'"><input class="CELLtypes2" type="checkbox" value="'+one+'"/> '+one+'</label>';
+      htmlCheck += '<label id="eIDtypesCK'+one+'"><input class="CellChatReceiver" type="checkbox" value="'+one+'"/> '+one+'</label>';
     }
-    $('#CELLtype2').html(htmlCheck.replace(/eID/g,'cellIntHeatmap'));
+    $('#CellChatReceiver').html(htmlCheck.replace(/eID/g,'cellChatHeatmap'));
 
     htmlCheck= "";
     var names = window.store.getState().annoMatrix.schema.annotations.obsByName.Cell_Subclusters.categories;
@@ -5434,62 +5439,6 @@ return
     $('#CCIdtable').empty();
 }
 
-function CPDBheatmap(){
-
-var CCI_CK_CPDB = document.getElementById("CCI_ConditionKey_CPDB").value; 
-
-var CCIconCPDB = document.getElementById("CCI_CPDB").value; 
-
-var cells = AllCells;
-
-var colour = $("#CPDB_HEATcolour").val();
-
-var grpMetaS = getSen();
-console.log(grpMetaS);
-
-var grpMetaR = getRec();
-console.log(grpMetaR);
-
-$(".CCIplotbt").prop("disabled", true);
-document.getElementById("CCIspin").style.visibility="visible";
-
-if(grpMetaS && grpMetaR && CCI_CK_CPDB && CCIconCPDB && colour) {
-  
-  var D = {'method':'CPDBHeatmap',
-  'dataset': window.store.getState().config.displayNames.dataset+'.h5ad',
-  'cells':cells,
-  'genes':[],
-  'Cluster_Receiver':grpMetaR,
-  'Cluster_Source':grpMetaS,
-  'ConditionKey':CCI_CK_CPDB,
-  'Cond':CCIconCPDB,
-  'colour':colour,
-  'cellPval':$("#cellPvalCPDB_HEAT").val(),
-  'figOpt':window.figOpt};
-  
-  $.ajax({
-  type:"POST",
-  url: VIPurl,
-  data:JSON.stringify(D),
-  contentType: 'application/json;charset=UTF-8',//
-  success: function(res){
-    $(".CPDB_HEAT_bt").prop("disabled",true);
-    document.getElementById("CCIspin").style.visibility="hidden";
-    
-    $('#heatCPDB').html(res);
-
-  },
-  error: function() {
-    console.log('error');
-    $("#CCInote2").text('Plotting Error!');
-  }
-})
-return
-} 
-  $("#CCInote").text('Input data required');
-  document.getElementById("CCIfig").innerHTML = ""; 
-}
-
 function cellIntDotPlot(){
   var CCI_CK = document.getElementById("CCI_ClusterKey").value; 
   
@@ -5608,7 +5557,7 @@ return
 
 function getRec() {
   var celltypesR = [];
-  $(".CELLtypes2").each(function(){
+  $(".CellChatReceiver").each(function(){
     if($(this).prop("checked")){
       celltypesR.push($(this).val());
   }});
@@ -5617,52 +5566,49 @@ function getRec() {
 
 function getSen() {
   var celltypesS = [];
-  $(".CELLtypes").each(function(){
+  $(".CellChatSender").each(function(){
     if($(this).prop("checked")){
       celltypesS.push($(this).val());
   }});
   return(celltypesS);
 }
 
-function cellIntHeatmap(){
+function cellChatHeatmap(){
 
-  var CCI_CK2 = document.getElementById("CCI_ConditionKey2").value; 
+  var CCI_ConK = document.getElementById("CCI_ConditionKey").value; 
   
-  var CCI_Con = document.getElementById("CCI_C3").value; 
-
-  var cells = AllCells;
+  var CCI_Con = document.getElementById("CCI_Condition").value; 
 
   var grpMetaS = getSen();
-  console.log(grpMetaS);
   
   var grpMetaR = getRec();
-  console.log(grpMetaR);
 
-  $(".CCIplotbt").prop("disabled", true);
+  var colour = document.getElementById('cellChatHeatmapColour').value;
+
+  $(".cellChatHeatmapbt").prop("disabled", true);
   document.getElementById("CCIspin").style.visibility="visible";
 
-  if(grpMetaS && grpMetaR && CCI_CK2 && CCI_Con) {
+  if(grpMetaS && grpMetaR && CCI_ConK && CCI_Con && colour) {
     
-    var D = {'method':'cellIntHeatmap',
+    var D = {'method':'cellChatHeatmap',
 		'dataset': window.store.getState().config.displayNames.dataset+'.h5ad',
-    'cells':cells,
-    'genes':[],
 		'Cluster_Receiver':grpMetaR,
     'Cluster_Source':grpMetaS,
-		'ConditionKey':CCI_CK2,
-		'Cond':CCI_Con,
+		'ConditionKey':CCI_ConK,
+		'Condition':CCI_Con,
+    'colour':colour,
     'figOpt':window.figOpt};
-    
+    console.log(D);
     $.ajax({
     type:"POST",
     url: VIPurl,
     data:JSON.stringify(D),
     contentType: 'application/json;charset=UTF-8',//
     success: function(res){
-      $(".CCIplotbt").prop("disabled",true);
+      $(".cellChatHeatmapbt").prop("disabled",true);
       document.getElementById("CCIspin").style.visibility="hidden";
       
-      $('#cellChatFig').html(res);
+      $('#cellChatHeatmapFig').html(res);
 
     },
     error: function() {
@@ -5673,17 +5619,13 @@ function cellIntHeatmap(){
 return
   } 
     $("#CCInote").text('Input data required');
-    document.getElementById("CCIfig").innerHTML = ""; 
+    document.getElementById("cellChatHeatmapFig").innerHTML = ""; 
 }
 
 function cellChatInteractionTable(){
 
   var CCI_ConK = document.getElementById("CCI_ConditionKey").value; 
-  console.log(CCI_ConK)
   var CCI_Con = document.getElementById("CCI_Condition").value; 
-  console.log(CCI_Con)
-  //var cells = getCells('CCIcell');
-  //let grp = [...new Set([$("#CCI_ClusterKey").val(),$("#CCI_ConditionKey").val()])];
 
   if(CCI_ConK && CCI_Con) {
     
@@ -5691,9 +5633,6 @@ function cellChatInteractionTable(){
 	      'dataset': window.store.getState().config.displayNames.dataset+'.h5ad',
         'ConditionKey':CCI_ConK,
         'Condition':CCI_Con};
-        //'cells':cells,
-        //'genes':[]};
-        console.log(D)
     $(".cellChatTablebt").prop("disabled", true);
     $('#CellChatTable').empty();
     document.getElementById("CCIspin").style.visibility="visible";
@@ -5757,8 +5696,127 @@ return
     $('#CellChatTable').empty();
   }
 
-function showCPDBhatTable(){
+function CPDBInteractionTable(){
 
+  var CCI_ConK = document.getElementById("CCI_ConditionKey").value; 
+  var CCI_Con = document.getElementById("CCI_Condition").value; 
+
+  if(CCI_ConK && CCI_Con) {
+    
+    var D = {'method':'CPDBInteractionTable',
+	      'dataset': window.store.getState().config.displayNames.dataset+'.h5ad',
+        'ConditionKey':CCI_ConK,
+        'Condition':CCI_Con};
+    $(".CPDBTablebt").prop("disabled", true);
+    $('#CPDBTable').empty();
+    document.getElementById("CCIspin").style.visibility="visible";
+    
+    $.ajax({
+    type:"POST",
+    url: VIPurl,
+    data:JSON.stringify(D),
+    contentType: 'application/json;charset=UTF-8',//
+    success: function(res){
+      $(".CPDBTablebt").prop("disabled",false);
+      document.getElementById("CCIspin").style.visibility="hidden";
+      
+      resTable = res;
+      console.log(res);
+      resTable = JSON.stringify(resTable);
+      resTable = resTable.split("\\n");
+      resTable = resTable.join('\n');
+      resTable = resTable.replace(/\\/g, '');
+      resTable = resTable.replace(/"/g,"");
+      console.log(resTable);
+      var gInfo = resTable.split("\n")[0].split(',').slice(8);
+      console.log(gInfo);
+      var tableP = d3.csvParse(resTable, function(data){
+        return [].concat([data.source,
+                  (data.target),
+                  (data.cluster_1),
+                  (data.cluster_2),
+                  (+data.pval).toExponential(2),
+                  (+data.mean).toFixed(2),
+                  (data.Interacting_Pair),
+                  (data.Interacting_LR)],
+                  (data.Condition),
+                  Object.values(data).slice(8));
+        });
+      console.log(tableP)
+
+
+      var tableTitle = [];
+      [].concat(['Source', "Target", "Sender Cluster", "Target Cluster", "P-value","Mean Expression", "Interacting Pair", "Interacting L-R", "Condition"]).forEach(function(d){tableTitle = tableTitle.concat({title:d})});
+      var table = $('#CPDBTable').DataTable({
+        destroy: true,
+        dom: 'Blfrtrip',
+        lengthMenu:[[10,50,100,200], [10,50,100,200,"All"]],
+        order:[5,"dsc"],
+        buttons:['csv'],
+        data: tableP,
+        columns:tableTitle
+      });
+
+    },
+    error: function() {
+      $("#CCInote1").text('Running Error!');
+      document.getElementById("CCIspin").style.visibility="hidden";
+    }
+})
+return
+  } 
+    $("#CCInote").text('Input data required');
+    document.getElementById("CCIfig").innerHTML="";
+    $('#CPDBTable').empty();
+}
+
+function CPDBHeatmap(){
+
+var CCI_ConK = document.getElementById("CCI_ConditionKey").value; 
+
+var CCI_Con = document.getElementById("CCI_Condition").value; 
+
+var grpMetaS = getSen();
+
+var grpMetaR = getRec();
+
+var colour = document.getElementById('CPDBHeatmapColour').value;
+
+$(".CPDBHeatmapbt").prop("disabled", true);
+document.getElementById("CCIspin").style.visibility="visible";
+
+if(grpMetaS && grpMetaR && CCI_ConK && CCI_Con && colour) {
+  
+  var D = {'method':'CPDBHeatmap',
+  'dataset': window.store.getState().config.displayNames.dataset+'.h5ad',
+  'Cluster_Receiver':grpMetaR,
+  'Cluster_Source':grpMetaS,
+  'ConditionKey':CCI_ConK,
+  'Condition':CCI_Con,
+  'colour':colour,
+  'figOpt':window.figOpt};
+  console.log(D);
+  $.ajax({
+  type:"POST",
+  url: VIPurl,
+  data:JSON.stringify(D),
+  contentType: 'application/json;charset=UTF-8',//
+  success: function(res){
+    $(".CPDBHeatmapbt").prop("disabled",true);
+    document.getElementById("CCIspin").style.visibility="hidden";
+    
+    $('#CPDBHeatmapFig').html(res);
+
+  },
+  error: function() {
+    console.log('error');
+    $("#CCInote2").text('Plotting Error!');
+  }
+})
+return
+} 
+  $("#CCInote").text('Input data required');
+  document.getElementById("CPDBHeatmapFig").innerHTML = ""; 
 }
 
 
